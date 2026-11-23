@@ -11,12 +11,13 @@
 // Used by: draw()/renderDesign (ANIM.frame), the Animate controls, Ambient.
 const ANIM = {
   playing: false, ambient: false, live: false, frame: null,
-  opts: { draw: true, drift: true, glitch: false, flow: false, dewroll: true, blink: false, wind: false, bloom: false, rings: false, current: false, twinkle: false, strikes: false, life: false, sun: false, breathe: false, petals: false, seasons: false, morph: false, spin: false, pulse: false, hue: false, speed: 1, driftAmt: 1, glyphP: 3.5, dewSpd: 1, curSpd: 1, curRate: 1, twRate: 1, shoot: 1, skRate: 1, skSpd: 1, lfSpd: 1, sunSpd: 1, brSpd: 1, ptRate: 1, ssSpd: 1 },
+  opts: { draw: true, drift: true, glitch: false, flow: false, dewroll: true, blink: false, wind: false, bloom: false, rings: false, current: false, twinkle: false, strikes: false, life: false, sun: false, breathe: false, petals: false, seasons: false, morph: false, spin: false, pulse: false, hue: false, speed: 1, driftAmt: 1, glyphP: 3.5, dewSpd: 1, curSpd: 1, curRate: 1, twRate: 1, shoot: 1, skRate: 1, skSpd: 1, lfSpd: 1, sunSpd: 1, brSpd: 1, ptRate: 1, ssSpd: 1, spSpd: 1 },
   frozen: false, frozenKey: '',   // paused: the last frame stays on screen until the design changes
   exporting: false,               // rendering the paused frame for an export (no blit cache)
   twTime: 0,                      // Twinkle clock (animation time × twinkle rate)
   lfTime: 0,                      // Life clock (animation time × life speed)
   sunTime: 0,                     // Sunlight clock (animation time × sun speed)
+  spTime: 0,                      // Spin clock (animation time × spin speed)
   ssTime: 0,                      // Seasons clock (animation time × season speed; restarts at Play)
   brTime: 0, brAmp: 0,            // Breathing clock (× breath speed) and its fade in/out (0–1, BR_FADE s)
   dewTime: 0,                     // rolling dew clock (animation time × dew speed)
@@ -223,6 +224,7 @@ function animTick(now) {
   ANIM.twTime += dt * o.twRate;
   ANIM.lfTime += dt * o.lfSpd;
   ANIM.sunTime += dt * o.sunSpd;
+  ANIM.spTime += dt * o.spSpd;
   if (o.seasons) ANIM.ssTime += dt * o.ssSpd;
   ANIM.brTime += dt * o.brSpd;
   {
@@ -378,7 +380,7 @@ function animTick(now) {
   const br = ANIM.brAmp > 0 ? ANIM.brTime : null, brA = smooth01(ANIM.brAmp);
   const pt = o.petals && (PETAL_MODES.includes(S.mode) || PETAL_MODES.includes(S.layer.mode)) ? t : null;
   const ys = o.seasons && (S.mode === 'vine' || S.layer.mode === 'vine') ? ANIM.ssTime / SEASON_S : null;
-  ANIM.frame = { items, lw: o.pulse ? 1 + PULSE_WIDTH * pulse : 1, spin: o.spin ? t * SPIN_RATE : 0, np, rt, ct, tt, st, sk, lt, su, br, brA, pt, ptWind: windOn, ys };
+  ANIM.frame = { items, lw: o.pulse ? 1 + PULSE_WIDTH * pulse : 1, spin: o.spin ? ANIM.spTime * SPIN_RATE : 0, np, rt, ct, tt, st, sk, lt, su, br, brA, pt, ptWind: windOn, ys };
   // sepia first so white lines take a colour too; then the hue turns
   canvas.style.filter = o.hue ? `sepia(0.8) saturate(3.5) hue-rotate(${(t * HUE_RATE) % 360}deg)` : '';
   // Handles and markers follow the drifting nodes (spin is left out, as before)
@@ -555,7 +557,7 @@ const MODE_INFO = {
 // Sliders for one effect each: [key, element id, min, max]; shown only while
 // their effect is on (syncAnimRelevance)
 const ANIM_FX_SLIDERS = [['curSpd', 'curspd', 0.25, 3], ['curRate', 'currate', 0.25, 3], ['twRate', 'twrate', 0.25, 3],
-  ['shoot', 'shoot', 0, 3], ['skRate', 'skrate', 0.25, 3], ['skSpd', 'skspd', 0.25, 3], ['lfSpd', 'lfspd', 0.25, 3], ['sunSpd', 'sunspd', 0.25, 3], ['brSpd', 'brspd', 0.25, 3], ['ptRate', 'ptrate', 0.25, 3], ['ssSpd', 'ssspd', 0.25, 3]];
+  ['shoot', 'shoot', 0, 3], ['skRate', 'skrate', 0.25, 3], ['skSpd', 'skspd', 0.25, 3], ['lfSpd', 'lfspd', 0.25, 3], ['sunSpd', 'sunspd', 0.25, 3], ['brSpd', 'brspd', 0.25, 3], ['ptRate', 'ptrate', 0.25, 3], ['ssSpd', 'ssspd', 0.25, 3], ['spSpd', 'spspd', 0.25, 4]];
 const ANIM_BOOLS = ['draw', 'drift', 'glitch', 'flow', 'dewroll', 'blink', 'wind', 'bloom', 'rings', 'current', 'twinkle', 'strikes', 'life', 'sun', 'breathe', 'petals', 'seasons', 'morph', 'spin', 'pulse', 'hue'];
 const ANIM_NAMES = { draw: 'Draw on', drift: 'Drift', glitch: 'Glitch', flow: 'Flow', dewroll: 'Rolling dew', blink: 'Blink', wind: 'Wind', bloom: 'Bloom', rings: 'Turning rings', current: 'Current', twinkle: 'Twinkle', strikes: 'Strikes', life: 'Life', sun: 'Sunlight', breathe: 'Breathing', petals: 'Falling petals', seasons: 'Seasons', morph: 'Morph seeds',
   spin: 'Spin', pulse: 'Pulse', hue: 'Colour cycle', swap: 'Symbol swap (with Flow)' };
@@ -597,8 +599,8 @@ function syncAnimRelevance() {
   const fxOn = { cur: o.current && modes.some(m => CURRENT_MODES.includes(m)), tw: o.twinkle && modes.some(m => TWINKLE_MODES.includes(m)),
     sk: o.strikes && modes.some(m => STRIKE_MODES.includes(m)), lf: o.life && modes.some(m => LIFE_MODES.includes(m)),
     su: o.sun && modes.some(m => SUN_MODES.includes(m)), br: o.breathe && modes.some(m => BREATHE_MODES.includes(m)),
-    pt: o.petals && modes.some(m => PETAL_MODES.includes(m)), ss: o.seasons && modes.includes('vine') };
-  [['curspd', 'cur'], ['currate', 'cur'], ['twrate', 'tw'], ['shoot', 'tw'], ['skrate', 'sk'], ['skspd', 'sk'], ['lfspd', 'lf'], ['sunspd', 'su'], ['brspd', 'br'], ['ptrate', 'pt'], ['ssspd', 'ss']]
+    pt: o.petals && modes.some(m => PETAL_MODES.includes(m)), ss: o.seasons && modes.includes('vine'), sp: o.spin };
+  [['curspd', 'cur'], ['currate', 'cur'], ['twrate', 'tw'], ['shoot', 'tw'], ['skrate', 'sk'], ['skspd', 'sk'], ['lfspd', 'lf'], ['sunspd', 'su'], ['brspd', 'br'], ['ptrate', 'pt'], ['ssspd', 'ss'], ['spspd', 'sp']]
     .forEach(([id, fx]) => $('an-' + id + '-row').classList.toggle('hidden', !fxOn[fx]));
   $('an-driftamt-row').classList.toggle('hidden', !moving);
   $('an-drift').closest('label').classList.toggle('hidden', o.flow && !o.glitch);   // Flow keyframes replace live drift
