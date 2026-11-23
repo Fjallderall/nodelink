@@ -10,7 +10,8 @@ Playwright (Python) with Chrome. Each script takes the HTML file to test as its 
 | `about.py FILE` | About dialog: entry points, Esc / × / backdrop, shortcuts blocked while open. |
 | `anim.py FILE…` | Plays PCB setups with Draw on, Drift and Current; reports page errors. |
 | `bench.py FILE…` | renderPCB timing. |
-| `lint.sh FILE` | ESLint (no-undef, no-unused-vars, no-unreachable) on the main script, line numbers matching the HTML. |
+| `lint.sh FILE` | ESLint (no-undef, no-unused-vars, no-unreachable, no-redeclare) on all scripts, concatenated in load order; reports file:line. Phase 26: 0 errors, 15 unused-variable warnings. |
+| `loadcheck.js DIR` | Node + espree. Finds top-level code (and the functions it calls) that uses a name declared in a later script file, which would fail while loading. Must report 0. |
 
 Compare two results:
 

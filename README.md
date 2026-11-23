@@ -1,6 +1,6 @@
 # NodeLink
 
-A node-based pattern generator in one HTML file. Place up to nine nodes, pick a mode, and NodeLink grows a design between them: circuit boards, synaptic webs, spiderwebs, lightning, nebulae, constellations, foam, microscope slides, arcane circles, geometrical schematics, stained glass, cathedral glass and vines.
+A node-based pattern generator that runs in the browser. Place up to nine nodes, pick a mode, and NodeLink grows a design between them: circuit boards, synaptic webs, spiderwebs, lightning, nebulae, constellations, foam, microscope slides, arcane circles, geometrical schematics, stained glass, cathedral glass and vines.
 
 **Live:** https://fjallderall.github.io/nodelink/
 
@@ -19,7 +19,19 @@ Everything runs in the browser; nothing is uploaded.
 
 ## Running it
 
-Open `index.html` in a browser, or use the live site. No build step, no dependencies.
+Open `index.html` in a browser (double-click works), or use the live site. No build step, no dependencies.
+
+## Code layout
+
+- `index.html`: markup only
+- `css/nodelink.css`: all styles
+- `js/`: plain scripts, loaded in order by `index.html` and sharing one global scope (no modules, so it also runs from `file://`)
+  - `core.js`, `svg-builder.js`: state, layers, RNG, geometry, the SVG builder
+  - `modes/`: one file per generator mode
+  - `display-list.js`, `compose.js`, `anim-effects.js`, `palette.js`: recording, symmetry and composition, animation effects, colour schemes
+  - `render-export.js`, `animation.js`, `design-io.js`, `ui.js`: rendering and exports, the animation loop, history and favourites, the interface
+
+The developer overview at the top of `js/core.js` explains how a picture is made. Tests are in `tests/`.
 
 ## Credits
 
