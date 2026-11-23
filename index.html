@@ -12,10 +12,10 @@
 <aside id="sidebar">
   <h1>NodeLink <button class="about-btn" type="button" data-about title="How NodeLink was made, and who made it">About</button></h1>
   <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" data-tab="design">Design</button>
-    <button class="tab" role="tab" data-tab="layout">Layout</button>
-    <button class="tab" role="tab" data-tab="nodes">Nodes</button>
-    <button class="tab" role="tab" data-tab="library">Library</button>
+    <button class="tab" role="tab" data-tab="design" title="Design: the mode, its options, the seed and the colours">Design</button>
+    <button class="tab" role="tab" data-tab="layout" title="Layout: page, boundary, position, scale and symmetry">Layout</button>
+    <button class="tab" role="tab" data-tab="nodes" title="Nodes: add, remove and size the nodes the pattern grows between">Nodes</button>
+    <button class="tab" role="tab" data-tab="library" title="Library: favourites, and saving or loading a design as a .json file">Library</button>
   </nav>
 
   <!-- ── DESIGN: what the pattern looks like ── -->
@@ -29,7 +29,7 @@
     </div>
     <div class="cg" id="mode-cg">
       <label for="mode">Mode</label>
-      <select id="layer-mode" class="hidden">
+      <select id="layer-mode" title="What Layer 2 draws underneath Layer 1 (None: no second layer)" class="hidden">
         <option value="none">None</option>
         <option value="pcb">Circuit Board (PCB)</option>
         <option value="foam">Arcane Foam (Lace)</option>
@@ -45,7 +45,7 @@
         <option value="vine">Vines (Leaves &amp; Flowers)</option>
         <option value="glass">Cathedral Glass (Coloured)</option>
       </select>
-      <select id="mode">
+      <select id="mode" title="What kind of pattern grows between the nodes. Each mode has its own options below">
         <option value="pcb" selected>Circuit Board (PCB)</option>
         <option value="foam">Arcane Foam (Lace)</option>
         <option value="web">Synaptic Web</option>
@@ -68,149 +68,149 @@
     </div>
     <div class="cg">
       <label for="density">Density <span class="val" id="v-density">6</span></label>
-      <input type="range" id="density" min="1" max="10" value="6">
+      <input type="range" id="density" title="How much is drawn: more traces, threads, cells, stars or leaves (1–10)" min="1" max="10" value="6">
     </div>
     <div class="cg">
       <label for="sigma">Jitter <span class="val"><span id="v-sigma">80</span>%</span></label>
-      <input type="range" id="sigma" min="0" max="100" value="80">
+      <input type="range" id="sigma" title="How irregular the pattern is: low is neat and regular, high is wild and uneven. Each mode uses it in its own way (Spiderweb: orb web to tangled web; Lightning: how jagged the bolts are)" min="0" max="100" value="80">
     </div>
     <div class="cg">
       <label for="weight">Stroke weight <span class="val" id="v-weight">1.0</span></label>
-      <input type="range" id="weight" min="0.2" max="5" step="0.1" value="1.0">
+      <input type="range" id="weight" title="Line thickness. Raise it for cut files when thin lines or narrow gaps drop out at your size" min="0.2" max="5" step="0.1" value="1.0">
     </div>
     <div class="cg" id="pcb-cg">
       <label for="pcb-pour">Copper pour <span class="val"><span id="v-pcb-pour">40</span>%</span></label>
-      <input type="range" id="pcb-pour" min="0" max="100" value="40">
-      <label class="check"><input type="checkbox" id="pcb-meander" checked> Meanders</label>
-      <label class="check"><input type="checkbox" id="pcb-silk"> Silkscreen (outlines, labels)</label>
+      <input type="range" id="pcb-pour" title="PCB: how much of the empty board is filled with copper areas" min="0" max="100" value="40">
+      <label class="check" title="PCB: some traces zigzag, like the length-matched lines on a real board"><input type="checkbox" id="pcb-meander" checked> Meanders</label>
+      <label class="check" title="PCB: component outlines and labels, as printed on a real board"><input type="checkbox" id="pcb-silk"> Silkscreen (outlines, labels)</label>
     </div>
     <div class="cg" id="chaos-cg">
       <label for="chaos-style">Glyphs</label>
-      <select id="chaos-style">
+      <select id="chaos-style" title="Geometrical Schematics: which set of symbols the glyphs come from">
         <option value="mixed">Mixed</option>
         <option value="pillar">Pillar symbols</option>
         <option value="classic">Classic schematic</option>
       </select>
-      <label class="check"><input type="checkbox" id="chaos-frames"> Frames (cartouches)</label>
-      <label class="check"><input type="checkbox" id="chaos-links"> Connecting lines</label>
+      <label class="check" title="Geometrical Schematics: a frame (cartouche) round each glyph"><input type="checkbox" id="chaos-frames"> Frames (cartouches)</label>
+      <label class="check" title="Geometrical Schematics: lines between the glyphs (Current needs these to run along)"><input type="checkbox" id="chaos-links"> Connecting lines</label>
     </div>
     <div class="cg" id="stain-cg">
-      <label class="check"><input type="checkbox" id="stain-ragged" checked> Ragged edge (no round window)</label>
-      <label class="check"><input type="checkbox" id="stain-ring" checked> Outer lead ring</label>
+      <label class="check" title="Stained Glass: without a boundary, the glass ends in a ragged edge instead of a round window"><input type="checkbox" id="stain-ragged" checked> Ragged edge (no round window)</label>
+      <label class="check" title="Stained Glass: a ring of lead round the outside of the window"><input type="checkbox" id="stain-ring" checked> Outer lead ring</label>
       <div class="note">Ragged edge works without a boundary; with a boundary the glass fills it.</div>
     </div>
     <div class="cg" id="neb-cg">
-      <label class="check"><input type="checkbox" id="neb-glow" checked> Glow (gas clouds)</label>
+      <label class="check" title="Nebula: soft glowing gas clouds. On screen and in PNGs; stencils and cut files leave it out"><input type="checkbox" id="neb-glow" checked> Glow (gas clouds)</label>
       <div class="note">Glow shows on screen and in PNGs; stencils and cut files leave it out.</div>
     </div>
     <div class="cg" id="light-cg">
-      <label class="check"><input type="checkbox" id="light-glow" checked> Glow (halo round the bolts)</label>
-      <label class="check"><input type="checkbox" id="light-fill"> Fill the boundary</label>
+      <label class="check" title="Lightning: a soft halo round the bolts. On screen and in PNGs; stencils and cut files leave it out"><input type="checkbox" id="light-glow" checked> Glow (halo round the bolts)</label>
+      <label class="check" title="Lightning: thin branches grow into the empty space until the boundary is filled (needs a boundary)"><input type="checkbox" id="light-fill"> Fill the boundary</label>
       <div class="note">Jitter sets how jagged the bolts and branches are. Glow shows on screen and in PNGs; stencils and cut files leave it out. Fill the boundary grows thin branches into the empty space (needs a boundary).</div>
     </div>
     <div class="cg" id="arc-cg">
-      <label class="check"><input type="checkbox" id="arc-snap"> Snap circles to touch</label>
+      <label class="check" title="Arcane: circles that nearly touch grow or shrink until their rims meet (and meet the outer ring inside a boundary)"><input type="checkbox" id="arc-snap"> Snap circles to touch</label>
       <label for="arc-wobble">Hand-drawn wobble <span class="val"><span id="v-arc-wobble">0</span>%</span></label>
-      <input type="range" id="arc-wobble" min="0" max="100" step="5" value="0">
-      <label class="check"><input type="checkbox" id="arc-links" checked> Script bands between circles</label>
-      <label class="check"><input type="checkbox" id="arc-sats" checked> Small satellite circles</label>
+      <input type="range" id="arc-wobble" title="Arcane: bends every line a little, like ink drawn by hand; also in cut files" min="0" max="100" step="5" value="0">
+      <label class="check" title="Arcane: bands of script running between the circles"><input type="checkbox" id="arc-links" checked> Script bands between circles</label>
+      <label class="check" title="Arcane: small circles beside the large ones"><input type="checkbox" id="arc-sats" checked> Small satellite circles</label>
       <div class="note">Snap: circles that nearly touch grow or shrink until their rims meet (and meet the outer ring inside a boundary). Wobble bends every line a little, like ink by hand; it also shows in cut files.</div>
     </div>
     <div class="cg" id="micro-cg">
-      <label class="check"><input type="checkbox" id="micro-veins" checked> Slime-mould veins</label>
+      <label class="check" title="Microscope: branching slime-mould veins between the cells"><input type="checkbox" id="micro-veins" checked> Slime-mould veins</label>
       <label for="micro-orgs">Organisms <span class="val"><span id="v-micro-orgs">100</span>%</span></label>
-      <input type="range" id="micro-orgs" min="0" max="200" step="10" value="100">
+      <input type="range" id="micro-orgs" title="Microscope: how many small organisms float between the cells (0% = none)" min="0" max="200" step="10" value="100">
       <label for="micro-cilia">Cilia</label>
-      <select id="micro-cilia">
+      <select id="micro-cilia" title="Microscope: the fine hairs round cells and organisms. With jitter: only when Jitter is above 35%">
         <option value="auto">With jitter (above 35%)</option>
         <option value="on">Always</option>
         <option value="off">Never</option>
       </select>
-      <label class="check"><input type="checkbox" id="micro-detail" checked> Cell insides (nucleus, organelles)</label>
+      <label class="check" title="Microscope: the nucleus and organelles inside each cell (with Blink, the nuclei are eyes)"><input type="checkbox" id="micro-detail" checked> Cell insides (nucleus, organelles)</label>
     </div>
     <div class="cg" id="vine-cg">
       <label for="vine-leaves">Leaves <span class="val"><span id="v-vine-leaves">100</span>%</span></label>
-      <input type="range" id="vine-leaves" min="0" max="200" step="10" value="100">
+      <input type="range" id="vine-leaves" title="Vines: how many leaves grow on the stems (0% = bare stems)" min="0" max="200" step="10" value="100">
       <label for="vine-leaf">Leaf shape</label>
-      <select id="vine-leaf">
+      <select id="vine-leaf" title="Vines: the shape of the leaves">
         <option value="almond">Pointed</option>
         <option value="round">Round</option>
         <option value="ivy">Ivy</option>
         <option value="mixed">Mixed</option>
       </select>
       <label for="vine-flowers">Flowers on the shoots <span class="val"><span id="v-vine-flowers">60</span>%</span></label>
-      <input type="range" id="vine-flowers" min="0" max="100" step="5" value="60">
+      <input type="range" id="vine-flowers" title="Vines: how many shoots end in a small flower. Every node always gets a large one" min="0" max="100" step="5" value="60">
       <label for="vine-bloom">Flowers</label>
-      <select id="vine-bloom">
+      <select id="vine-bloom" title="Vines: which kind of flower">
         <option value="mixed">Mixed</option>
         <option value="blossom">Blossom (five petals)</option>
         <option value="daisy">Daisy</option>
         <option value="rose">Rose</option>
       </select>
       <label for="vine-season">Season</label>
-      <select id="vine-season">
+      <select id="vine-season" title="Vines: the time of year: leaf colours, buds, flowers or hips. Animate → Seasons starts from here">
         <option value="spring">Spring (young leaves, buds)</option>
         <option value="summer">Summer (full bloom)</option>
         <option value="autumn">Autumn (turned leaves, hips)</option>
         <option value="winter">Winter (bare)</option>
       </select>
-      <label class="check"><input type="checkbox" id="vine-tendrils" checked> Curled tendrils</label>
-      <label class="check"><input type="checkbox" id="vine-veins" checked> Leaf veins</label>
+      <label class="check" title="Vines: curled tendrils on the shoots"><input type="checkbox" id="vine-tendrils" checked> Curled tendrils</label>
+      <label class="check" title="Vines: veins in the leaves, as gaps, so they show in stencils and cut files"><input type="checkbox" id="vine-veins" checked> Leaf veins</label>
       <div class="note">Every node gets a large flower. Jitter sets how much the stems wave and the shoots curl. Veins and petal edges are gaps, so they show in stencils and cut files.</div>
     </div>
     <div class="cg" id="glass-cg">
       <label for="glass-style">Style</label>
-      <select id="glass-style">
+      <select id="glass-style" title="Cathedral Glass: how the window is laid out">
         <option value="mosaic">Jewel mosaic</option>
         <option value="tiffany">Tiffany (flowers &amp; leaves)</option>
         <option value="rose">Rose windows</option>
       </select>
       <label for="glass-set">Glass</label>
-      <select id="glass-set">
+      <select id="glass-set" title="Cathedral Glass: the colours of the glass (with the colours set to Original)">
         <option value="jewel">Jewel tones</option>
         <option value="pastel">Pastel</option>
         <option value="amber">Warm amber</option>
         <option value="sea">Cool sea</option>
         <option value="clear">Clear (grisaille)</option>
       </select>
-      <label class="check"><input type="checkbox" id="glass-light" checked> Light &amp; shading</label>
+      <label class="check" title="Cathedral Glass: light shining through and shading on each piece"><input type="checkbox" id="glass-light" checked> Light &amp; shading</label>
       <div class="note">The glass colours show with the colour scheme "Original"; other schemes turn them into tones of the scheme. Lead is a gap in stencils and cut files, so every piece of glass cuts out on its own. Jitter curves the Tiffany lead and makes the mosaic more shattered.</div>
     </div>
     <div class="cg" id="dew-cg">
       <div class="note">Spiderweb: low jitter = orb web, high = tangled sheet web.</div>
       <label for="dew">Dew <span class="val"><span id="v-dew">60</span>%</span></label>
-      <input type="range" id="dew" min="0" max="100" value="60">
-      <label class="check"><input type="checkbox" id="curved" checked> Curved silk</label>
+      <input type="range" id="dew" title="Spiderweb: how many dew drops hang on the threads" min="0" max="100" value="60">
+      <label class="check" title="Spiderweb: the threads sag in curves instead of running straight"><input type="checkbox" id="curved" checked> Curved silk</label>
       <div class="sub" id="curve-sub">
         <label for="curve">Curve amount <span class="val"><span id="v-curve">60</span>%</span></label>
-        <input type="range" id="curve" min="0" max="100" value="60">
+        <input type="range" id="curve" title="Spiderweb: how deep the threads sag" min="0" max="100" value="60">
       </div>
     </div>
     <div class="cg">
       <label for="seed">Seed</label>
       <div class="row">
-        <input type="text" class="field" id="seed" inputmode="numeric" style="flex:3">
+        <input type="text" class="field" id="seed" title="The number the pattern grows from: the same seed with the same settings always gives the same design. Type one in to get a design back" inputmode="numeric" style="flex:3">
         <button id="btn-reseed" title="New seed, same settings (R)">⟳</button>
       </div>
     </div>
 
 
     <details class="group" id="grp-colour">
-      <summary>Colours <span class="sum-val" id="sum-colour"></span></summary>
+      <summary title="Colours: each mode&#x27;s own, a colour scheme, or your own">Colours <span class="sum-val" id="sum-colour"></span></summary>
       <div class="cg">
         <label for="palette">Palette</label>
-        <select id="palette">
+        <select id="palette" title="Original: each mode&#x27;s own colours. Colour scheme: pick a scheme below. Own colours: choose the colours yourself">
           <option value="original">Original colours</option>
           <option value="tint">Colour scheme</option>
           <option value="stencil">Own colours</option>
         </select>
       </div>
-      <label class="chk hidden" id="l2-same-row"><input type="checkbox" id="l2-same" checked> Same colours as Layer 1</label>
+      <label class="chk hidden" id="l2-same-row" title="Layer 2 uses Layer 1&#x27;s colours. Untick to give Layer 2 colours of its own"><input type="checkbox" id="l2-same" checked> Same colours as Layer 1</label>
       <div class="pal-grid" id="pal-grid" role="listbox" aria-label="Colour schemes"></div>
       <div class="row" id="ink-row">
-        <div id="paper-cell"><label for="paper" id="lbl-paper">Paper</label><input type="color" id="paper" value="#ffffff"></div>
-        <div><label for="ink" id="lbl-ink">Ink</label><input type="color" id="ink" value="#000000"></div>
-        <div id="glow-cell"><label for="glow">Highlights</label><input type="color" id="glow" value="#ffffff"></div>
+        <div id="paper-cell"><label for="paper" id="lbl-paper">Paper</label><input type="color" id="paper" title="The background colour" value="#ffffff"></div>
+        <div><label for="ink" id="lbl-ink">Ink</label><input type="color" id="ink" title="The colour of the lines" value="#000000"></div>
+        <div id="glow-cell"><label for="glow">Highlights</label><input type="color" id="glow" title="The colour of the highlights and glows" value="#ffffff"></div>
       </div>
     </details>
   </section>
@@ -219,7 +219,7 @@
   <section class="panel" data-panel="layout">
     <div class="cg">
       <label for="pg-preset">Page</label>
-      <select id="pg-preset">
+      <select id="pg-preset" title="A card or paper size to design on, shown as a frame on the canvas; None for a free canvas">
         <option value="none">None (free canvas)</option>
         <optgroup label="Cards">
           <option value="poker">Playing card · 63 × 88 mm</option>
@@ -239,22 +239,22 @@
     </div>
     <div class="sub" id="pg-sub">
       <div class="row">
-        <div><label for="pg-w">Width</label><input type="number" class="field" id="pg-w" min="1" step="any"></div>
-        <div><label for="pg-h">Height</label><input type="number" class="field" id="pg-h" min="1" step="any"></div>
+        <div><label for="pg-w">Width</label><input type="number" class="field" id="pg-w" title="Page width, in the unit on the right" min="1" step="any"></div>
+        <div><label for="pg-h">Height</label><input type="number" class="field" id="pg-h" title="Page height, in the unit on the right" min="1" step="any"></div>
         <div style="flex:0.8"><label for="pg-unit">Unit</label>
-          <select id="pg-unit"><option value="mm">mm</option><option value="px">px</option></select></div>
+          <select id="pg-unit" title="Unit for the page size: millimetres or pixels"><option value="mm">mm</option><option value="px">px</option></select></div>
       </div>
       <div class="row" style="margin-top:6px;">
         <button id="pg-rotate" title="Swap portrait / landscape">⇄ Rotate</button>
-        <div><label for="pg-bleed">Bleed (mm)</label><input type="number" class="field" id="pg-bleed" min="0" max="20" step="0.5"></div>
+        <div><label for="pg-bleed">Bleed (mm)</label><input type="number" class="field" id="pg-bleed" title="Extra margin round the page that the design runs into, so no edge shows after trimming" min="0" max="20" step="0.5"></div>
       </div>
-      <label class="check"><input type="checkbox" id="pg-clip"> Clip design to page</label>
+      <label class="check" title="Cut the design off at the page edge (bleed included). Off: the design can run past the page"><input type="checkbox" id="pg-clip"> Clip design to page</label>
       <div class="readout" id="pg-readout"></div>
     </div>
 
     <div class="cg">
       <label for="bnd-shape">Boundary</label>
-      <select id="bnd-shape">
+      <select id="bnd-shape" title="A shape the pattern grows inside, with a border line round it">
         <option value="none">None</option>
         <option value="circle">Circle</option>
         <option value="square">Square</option>
@@ -264,9 +264,9 @@
     </div>
     <div class="sub" id="bnd-sub">
       <label for="bnd-size">Size <span class="val" id="v-bnd-size">300</span></label>
-      <input type="range" id="bnd-size" min="100" max="900" step="10" value="300">
+      <input type="range" id="bnd-size" title="How large the boundary is" min="100" max="900" step="10" value="300">
       <label for="bnd-border">Border</label>
-      <select id="bnd-border">
+      <select id="bnd-border" title="The line drawn along the boundary">
         <option value="single">Single line</option>
         <option value="double">Double line</option>
         <option value="none">None</option>
@@ -275,9 +275,9 @@
 
     <div class="cg">
       <label for="xf-scale">Design scale <span class="val" id="v-xf-scale">100%</span></label>
-      <input type="range" id="xf-scale" min="25" max="400" step="5" value="100">
+      <input type="range" id="xf-scale" title="Makes the design larger or smaller inside the boundary or page; the border stays put" min="25" max="400" step="5" value="100">
       <label for="xf-rot">Design rotation <span class="val" id="v-xf-rot">0°</span></label>
-      <input type="range" id="xf-rot" min="-180" max="180" step="1" value="0">
+      <input type="range" id="xf-rot" title="Turns the design inside the boundary or page; the border stays put" min="-180" max="180" step="1" value="0">
       <div class="xf-pos">Position <span class="val" id="v-xf-pos">centre</span></div>
       <div class="xf-row">
         <button id="xf-move" class="toggle" aria-pressed="false" title="Drag the background to move the design instead of the view (M; or Shift+drag)">Move design</button>
@@ -290,7 +290,7 @@
 
     <div class="cg">
       <label for="sym-type">Symmetry</label>
-      <select id="sym-type">
+      <select id="sym-type" title="Mirror: the left half is mirrored to the right. Radial: the design repeats round the centre">
         <option value="off">Off</option>
         <option value="mirror">Mirror (left ↔ right)</option>
         <option value="radial">Radial</option>
@@ -298,8 +298,8 @@
     </div>
     <div class="sub" id="sym-radial">
       <label for="sym-n">Folds <span class="val" id="v-sym-n">6</span></label>
-      <input type="range" id="sym-n" min="2" max="12" step="1" value="6">
-      <label class="check"><input type="checkbox" id="sym-kaleido"> Kaleidoscope (mirrored wedges)</label>
+      <input type="range" id="sym-n" title="Radial: how many times the design repeats round the centre" min="2" max="12" step="1" value="6">
+      <label class="check" title="Radial: every other wedge is mirrored, like a kaleidoscope"><input type="checkbox" id="sym-kaleido"> Kaleidoscope (mirrored wedges)</label>
     </div>
     <div class="note" id="sym-note">Content comes from the wedge between the dashed guides.</div>
     <div class="note">Auto-Place (Nodes tab) fits the nodes to the page, boundary or wedge.</div>
@@ -309,7 +309,7 @@
   <section class="panel" data-panel="nodes">
     <div class="node-roster" id="node-roster"></div>
     <div class="row">
-      <button id="btn-add-node">+ Add</button>
+      <button id="btn-add-node" title="Add a node (9 at most)">+ Add</button>
       <button id="btn-auto-place" title="Spread the nodes to fit the layout">Auto-place</button>
       <button id="btn-reset-nodes" title="Put the nodes back in a ring">Reset</button>
     </div>
@@ -318,7 +318,7 @@
 
   <!-- ── LIBRARY ── -->
   <section class="panel" data-panel="library">
-    <button id="btn-fav" class="first">★ Save to favourites</button>
+    <button id="btn-fav" title="Keep this design in the favourites below (in this browser only)" class="first">★ Save to favourites</button>
     <div class="favs" id="favs"></div>
     <div class="note" id="favs-empty">Favourites are kept in this browser. Click one to load it.</div>
     <div class="cg" style="margin-top:12px;">
@@ -330,7 +330,7 @@
       <button id="btn-load-json" title="Load a preset file">Load .json</button>
     </div>
     <input type="file" id="file-json" accept=".json,application/json" hidden>
-    <button class="about-link" type="button" data-about>About NodeLink</button>
+    <button class="about-link" type="button" data-about title="How NodeLink was made, and who made it">About NodeLink</button>
   </section>
 </aside>
 
@@ -396,14 +396,14 @@
       <label class="chk" title="Vines: now and then a petal comes loose from a flower and drifts down, swaying and tumbling (screen down; with Wind it is blown along). Not in the cut or SVG exports"><input type="checkbox" id="an-petals"> Falling petals</label>
       <label class="chk" title="Vines: the year turns: young leaves unfold in spring, flowers open and drop their petals, leaves turn and fall in autumn, winter is bare; it starts from the Season set in the Vines options"><input type="checkbox" id="an-seasons"> Seasons</label>
       <label class="chk" title="Foam: the bubbles swell and shrink in slow waves that spread out from the nodes; the threads between them stretch along"><input type="checkbox" id="an-breathe"> Breathing</label>
-      <label class="chk"><input type="checkbox" id="an-morph"> Morph seeds</label>
-      <label class="chk"><input type="checkbox" id="an-spin"> Spin</label>
-      <label class="chk"><input type="checkbox" id="an-pulse"> Pulse</label>
-      <label class="chk"><input type="checkbox" id="an-hue"> Colour cycle</label>
+      <label class="chk" title="Every few seconds the design grows into a new seed with the same settings"><input type="checkbox" id="an-morph"> Morph seeds</label>
+      <label class="chk" title="The whole design turns slowly (Spin speed sets the pace)"><input type="checkbox" id="an-spin"> Spin</label>
+      <label class="chk" title="The lines swell and thin in a slow beat, dimming a little at the low point"><input type="checkbox" id="an-pulse"> Pulse</label>
+      <label class="chk" title="The colours shift slowly round the colour wheel"><input type="checkbox" id="an-hue"> Colour cycle</label>
     </div>
     <div class="anim-speed">
       <label for="an-speed">Speed</label>
-      <input type="range" id="an-speed" min="0.25" max="3" step="0.25">
+      <input type="range" id="an-speed" title="How fast every motion runs: one dial for all of them" min="0.25" max="3" step="0.25">
       <span id="an-speed-v"></span>
     </div>
     <div class="anim-speed" id="an-driftamt-row" title="How far the nodes wander (Drift, Flow and Glitch)">
@@ -491,7 +491,7 @@
   <div class="cut-panel hidden" id="cut-panel">
     <div class="cut-head">
       <label for="ex-cutpreset">Cut for</label>
-      <select id="ex-cutpreset"></select>
+      <select id="ex-cutpreset" title="The machine and material to cut for; sets the minimum line, gap and hole sizes"></select>
       <button class="close" id="cut-collapse" title="Show or hide the cut settings" aria-expanded="true">▴</button>
     </div>
     <div id="cut-body">
@@ -505,7 +505,7 @@
       </div>
       <div class="cg">
         <label for="ex-cutstyle">File</label>
-        <select id="ex-cutstyle">
+        <select id="ex-cutstyle" title="Filled shape for vinyl cutters (Cricut, Silhouette); hairline outlines for lasers">
           <option value="fill">Filled shape (vinyl cutters)</option>
           <option value="hairline">Hairline outlines (laser)</option>
         </select>
@@ -549,7 +549,7 @@
     <div class="drawer-head"><span id="loop-title">Rendering a loop video</span></div>
     <progress id="loop-bar" max="1" value="0"></progress>
     <div class="loop-msg" id="loop-msg"></div>
-    <button type="button" id="loop-cancel">Cancel</button>
+    <button type="button" id="loop-cancel" title="Stop rendering (Esc); nothing is saved">Cancel</button>
   </dialog>
 
   <!-- ── EXPORT DRAWER ── -->
@@ -568,14 +568,14 @@
     <div id="ex-size-ctrls">
       <div class="cg">
         <label for="ex-frame">Frame</label>
-        <select id="ex-frame">
+        <select id="ex-frame" title="Fit to design: the whole design, cropped close. Current view: what the canvas shows now">
           <option value="bounds">Fit to design</option>
           <option value="view">Current view</option>
         </select>
       </div>
       <div class="cg">
         <label for="ex-cm">Size (cm, longest side)</label>
-        <input type="number" class="field" id="ex-cm" min="1" max="100" step="0.5" value="10">
+        <input type="number" class="field" id="ex-cm" title="How large the export is, in cm along its longest side" min="1" max="100" step="0.5" value="10">
       </div>
     </div>
     <div class="readout" id="ex-readout"></div>
@@ -583,18 +583,18 @@
     <div class="fmt" data-fmt="png">
       <div class="cg">
         <label for="ex-dpi">DPI</label>
-        <select id="ex-dpi">
+        <select id="ex-dpi" title="Pixels per inch: with the size, sets how many pixels the PNG has. 300 is print quality">
           <option value="150">150</option>
           <option value="300" selected>300</option>
           <option value="600">600</option>
         </select>
       </div>
-      <label class="check"><input type="checkbox" id="ex-transparent" checked> Transparent background</label>
+      <label class="check" title="The background becomes see-through, for Procreate or layering"><input type="checkbox" id="ex-transparent" checked> Transparent background</label>
     </div>
 
     <div class="fmt" data-fmt="cut">
       <div class="readout" id="ex-cut-sum"></div>
-      <button id="ex-cut-edit">Cut settings &amp; preview</button>
+      <button id="ex-cut-edit" title="Opens the cut view and its settings, to check the traced cut before exporting">Cut settings &amp; preview</button>
     </div>
 
     <div class="fmt" data-fmt="svg">
@@ -624,7 +624,7 @@
       <div class="note">Records the animation as set up in the Animate panel, frame by frame, so it can take longer than the video itself. Seasons take 48 s a year at 1×: a shorter loop fades back mid-year.</div>
     </div>
 
-    <button class="primary" id="btn-export-go">Export</button>
+    <button class="primary" id="btn-export-go" title="Export with the settings above">Export</button>
   </div>
 </main>
 

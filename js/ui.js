@@ -41,7 +41,7 @@ function renderNodeDOM(pos = null) {
     const el = nodeEls[idx];
     el.textContent = S.showNumbers ? node.glyph : '';
     el.classList.toggle('plain', !S.showNumbers);
-    el.title = `Node ${idx + 1}`;
+    el.title = `Node ${idx + 1}: drag to move it`;
     el.classList.toggle('dragging', S.draggingNode === idx);
     const p = dxf((pos && pos[idx]) || node);
     el.style.left = `${(p.x * S.zoom + CC / 2 + S.pan.x) * scale}px`;
@@ -50,6 +50,10 @@ function renderNodeDOM(pos = null) {
 }
 
 let openNode = -1;   // index of the node whose detail panel is open
+const ND_HELP = {
+  size: 'How large this node is, and what is drawn round it (circles, cells, glyphs, flowers)',
+  w: 'How thick the lines that grow from this node are'
+};
 
 function renderNodeRoster() {
   const r = document.getElementById('node-roster');
@@ -61,9 +65,9 @@ function renderNodeRoster() {
     const row = document.createElement('div');
     row.className = 'node-row';
     row.innerHTML = `
-      <button class="glyph-btn" title="Size and weight"></button>
+      <button class="glyph-btn" title="Show this node's size and weight"></button>
       <span class="node-sum"></span>
-      <button class="del-node" title="Remove node">×</button>
+      <button class="del-node" title="Remove this node (2 at least stay)">×</button>
     `;
     row.querySelector('.node-sum').textContent = `Node ${idx + 1} · size ${Number(node.size).toFixed(1)} · weight ${Number(node.w).toFixed(1)}`;
     const gb = row.querySelector('.glyph-btn');
@@ -98,10 +102,10 @@ function renderNodeRoster() {
       const det = document.createElement('div');
       det.className = 'node-detail';
       det.innerHTML = `
-        <label>Size <span class="val nd-vs"></span></label>
-        <input type="range" class="nd-size" min="0.5" max="3" step="0.1">
-        <label>Weight <span class="val nd-vw"></span></label>
-        <input type="range" class="nd-w" min="0.5" max="3" step="0.1">
+        <label title="${ND_HELP.size}">Size <span class="val nd-vs"></span></label>
+        <input type="range" class="nd-size" min="0.5" max="3" step="0.1" title="${ND_HELP.size}">
+        <label title="${ND_HELP.w}">Weight <span class="val nd-vw"></span></label>
+        <input type="range" class="nd-w" min="0.5" max="3" step="0.1" title="${ND_HELP.w}">
       `;
       [['.nd-size', '.nd-vs', 'size'], ['.nd-w', '.nd-vw', 'w']].forEach(([q, vq, key]) => {
         const el = det.querySelector(q), v = det.querySelector(vq);
@@ -434,7 +438,7 @@ function swatchSVG(p) {
 }
 function buildPaletteGrid() {
   const g = document.getElementById('pal-grid');
-  g.innerHTML = PALETTES.map(p => `<button type="button" role="option" data-p="${p.id}" title="${p.name}">${swatchSVG(p)}<span>${p.name}</span></button>`).join('');
+  g.innerHTML = PALETTES.map(p => `<button type="button" role="option" data-p="${p.id}" title="Colour scheme: ${p.name}">${swatchSVG(p)}<span>${p.name}</span></button>`).join('');
   g.addEventListener('click', e => {
     const b = e.target.closest('button[data-p]');
     if (!b) return;

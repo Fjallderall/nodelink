@@ -245,14 +245,15 @@ function renderFavs() {
   favs.forEach(f => {
     const el = document.createElement('div');
     el.className = 'fav';
-    el.title = `${f.design.mode} · seed ${f.design.seed}`;
+    const what = `${f.design.mode} · seed ${f.design.seed}`;
+    el.title = `Load this favourite (${what})`;
     const img = document.createElement('img');
     img.src = f.thumb;
-    img.alt = el.title;
+    img.alt = what;
     const del = document.createElement('button');
     del.className = 'fav-del';
     del.textContent = '×';
-    del.title = 'Remove favourite';
+    del.title = 'Remove this favourite';
     del.addEventListener('click', e => {
       e.stopPropagation();
       saveFavs(loadFavs().filter(x => x.id !== f.id));

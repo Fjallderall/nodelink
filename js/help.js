@@ -8,11 +8,14 @@
 // the help and a second tap on the same control uses it (a slider holds
 // still on the first tap). ? again, Esc or a
 // reload turns help off. Not saved.
+// A control and its label share one help text (linkLabelHelp), so pointing
+// at either explains it; the native tooltip shows on both too.
 // Used by: INIT (initHelp), commit (endEmptyStart), the keydown handler.
 const HELP = { on: false, el: null, tapped: null, block: false, hold: null };
 const helpEl = id => document.getElementById(id);
 
 function initHelp(firstVisit) {
+  linkLabelHelp();
   helpEl('help-btn').addEventListener('click', () => setHelp(!HELP.on));
   document.addEventListener('pointerover', helpOver, true);
   document.addEventListener('pointermove', helpMove, true);
@@ -82,6 +85,16 @@ function arrowHead(t) {
   return [l, t, r];
 }
 
+// label[for] ↔ its control: whichever has a title lends it to the other
+function linkLabelHelp() {
+  document.querySelectorAll('label[for]').forEach(lab => {
+    const el = document.getElementById(lab.htmlFor);
+    if (!el) return;
+    if (el.title && !lab.title) lab.title = el.title;
+    else if (lab.title && !el.title) el.title = lab.title;
+  });
+}
+
 function endEmptyStart() {
   if (!document.body.classList.contains('empty-start')) return;
   document.body.classList.remove('empty-start');
@@ -95,7 +108,7 @@ function setHelp(on) {
   // Native tooltips would show over ours: park the titles while help is on
   document.querySelectorAll(on ? '[title]' : '[data-help]').forEach(el => {
     if (on) { el.dataset.help = el.title; el.removeAttribute('title'); }
-    else { el.title = el.dataset.help; delete el.dataset.help; }
+    else { if (!el.title) el.title = el.dataset.help; delete el.dataset.help; }   // a title set meanwhile is newer
   });
   HELP.tapped = null; HELP.hold = null;
   showHelpTip(null);
