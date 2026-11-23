@@ -2,8 +2,6 @@
 
 A node-based pattern generator that runs in the browser. Place up to nine nodes, pick a mode, and NodeLink grows a design between them: circuit boards, synaptic webs, spiderwebs, lightning, nebulae, constellations, foam, microscope slides, arcane circles, geometrical schematics, stained glass, cathedral glass and vines.
 
-**Live:** https://fjallderall.github.io/nodelink/
-
 ## What it does
 
 - **Modes and layers**: one mode per design, plus an optional second layer in another mode.
@@ -19,7 +17,7 @@ Everything runs in the browser; nothing is uploaded.
 
 ## Running it
 
-Open `index.html` in a browser (double-click works), or use the live site. No build step, no dependencies.
+Open `index.html` in a browser (double-click works). No build step, no dependencies.
 
 ## Code layout
 

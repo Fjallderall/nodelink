@@ -5,10 +5,11 @@
 // commit() → endEmptyStart().
 // Help (the ? button, or the ? key): while on, pointing at any control shows
 // what it does next to the pointer (its title). On touch a first tap shows
-// the help and a second tap on the same control uses it. ? again, Esc or a
+// the help and a second tap on the same control uses it (a slider holds
+// still on the first tap). ? again, Esc or a
 // reload turns help off. Not saved.
 // Used by: INIT (initHelp), commit (endEmptyStart), the keydown handler.
-const HELP = { on: false, el: null, tapped: null, block: false };
+const HELP = { on: false, el: null, tapped: null, block: false, hold: null };
 const helpEl = id => document.getElementById(id);
 
 function initHelp(firstVisit) {
@@ -17,6 +18,8 @@ function initHelp(firstVisit) {
   document.addEventListener('pointermove', helpMove, true);
   document.addEventListener('pointerdown', helpTap, true);
   document.addEventListener('click', helpClick, true);
+  document.addEventListener('input', helpHold, true);
+  document.addEventListener('change', helpHold, true);
   if (firstVisit) {
     document.body.classList.add('empty-start');
     pointAtRandomise();
@@ -24,17 +27,59 @@ function initHelp(firstVisit) {
   }
 }
 
-// The arrow from the hint to the Randomise button (redrawn on resize)
+// The arrow from the hint to the Randomise button (redrawn on resize). It
+// ends just below, beside or at a lower corner of the button, whichever is
+// nearest below the middle without the curve or its head crossing another
+// toolbar control (on narrow phones the rows stack, so straight up can run
+// through Export or Animate). Nothing clear: straight up, as before.
+const ARROW_GAP = 9, ARROW_CLEAR = 3, ARROW_HEAD = 11, ARROW_BEND = 28;
 function pointAtRandomise() {
   const svg = helpEl('empty-arrow'), box = helpEl('empty-hint').getBoundingClientRect(), btn = helpEl('tb-randomize').getBoundingClientRect();
   if (!document.body.classList.contains('empty-start') || !box.width || !btn.width) return;
-  const bx = btn.left + btn.width / 2, by = btn.bottom + 8;
-  const sx = Math.max(box.left + 16, Math.min(box.right - 16, bx)), sy = box.top - 8;
-  const mx = (sx + bx) / 2 + (bx > sx ? -1 : 1) * Math.min(60, Math.abs(bx - sx) / 3), my = (sy + by) / 2;
+  const k = ARROW_CLEAR, walls = [...document.querySelectorAll('.toolbar button, .toolbar select, .toolbar input')]
+    .filter(el => el.id !== 'tb-randomize').map(el => el.getBoundingClientRect()).filter(r => r.width && r.height);
+  const hits = (x, y) => walls.some(r => x > r.left - k && x < r.right + k && y > r.top - k && y < r.bottom + k);
+  const cx = btn.left + btn.width / 2, sy = box.top - 8;
+  const best = arrowTips(btn).map(t => {
+    const sx = Math.max(box.left + 16, Math.min(box.right - 16, t.x));
+    const c2 = { x: t.x - t.dx * ARROW_BEND, y: t.y - t.dy * ARROW_BEND }, c1 = { x: sx, y: (sy + c2.y) / 2 };
+    const pts = arrowCurve({ x: sx, y: sy }, c1, c2, t, 48).concat(arrowHead(t));
+    return { t, sx, c1, c2, ok: t.y < sy - 20 && pts.every(p => !hits(p.x, p.y)), cost: Math.abs(t.x - cx) + t.side };
+  }).filter(o => o.ok).sort((a, b) => a.cost - b.cost)[0];
+  const t = best ? best.t : { x: cx, y: btn.bottom + 8, dx: 0, dy: -1 };
+  const sx = best ? best.sx : Math.max(box.left + 16, Math.min(box.right - 16, cx));
+  const c1 = best ? best.c1 : { x: sx, y: (sy + t.y) / 2 }, c2 = best ? best.c2 : c1;
   svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
-  const a = Math.atan2(by - my, bx - mx), h = 11;
-  const head = [a - 0.45, a + 0.45].map(t => `${bx - h * Math.cos(t)},${by - h * Math.sin(t)}`);
-  svg.querySelector('path').setAttribute('d', `M${sx},${sy} Q${mx},${my} ${bx},${by} M${head[0]} L${bx},${by} L${head[1]}`);
+  const head = arrowHead(t).filter((p, i) => i !== 1).map(p => `${p.x},${p.y}`);
+  svg.querySelector('path').setAttribute('d', `M${sx},${sy} C${c1.x},${c1.y} ${c2.x},${c2.y} ${t.x},${t.y} M${head[0]} L${t.x},${t.y} L${head[1]}`);
+}
+
+// Candidate tips around the button, each with the direction it points in
+// (dx, dy) and an extra cost for not coming from straight below
+function arrowTips(btn) {
+  const g = ARROW_GAP, d = g * Math.SQRT1_2, tips = [];
+  for (let x = btn.left + 6; x <= btn.right - 6; x += 4) tips.push({ x, y: btn.bottom + g, dx: 0, dy: -1, side: 0 });
+  for (let y = btn.top + 8; y <= btn.bottom - 4; y += 4) {
+    tips.push({ x: btn.left - g, y, dx: 1, dy: 0, side: 30 }, { x: btn.right + g, y, dx: -1, dy: 0, side: 30 });
+  }
+  tips.push({ x: btn.left - d, y: btn.bottom + d, dx: Math.SQRT1_2, dy: -Math.SQRT1_2, side: 15 });
+  tips.push({ x: btn.right + d, y: btn.bottom + d, dx: -Math.SQRT1_2, dy: -Math.SQRT1_2, side: 15 });
+  return tips;
+}
+// Points along a cubic curve, to test it against the other controls
+function arrowCurve(p0, p1, p2, p3, n) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, u = 1 - t, a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, e = t * t * t;
+    pts.push({ x: a * p0.x + b * p1.x + c * p2.x + e * p3.x, y: a * p0.y + b * p1.y + c * p2.y + e * p3.y });
+  }
+  return pts;
+}
+// The arrowhead's two barb ends with the tip between them
+function arrowHead(t) {
+  const a = Math.atan2(t.dy, t.dx), h = ARROW_HEAD;
+  const [l, r] = [a - 0.45, a + 0.45].map(q => ({ x: t.x - h * Math.cos(q), y: t.y - h * Math.sin(q) }));
+  return [l, t, r];
 }
 
 function endEmptyStart() {
@@ -52,7 +97,7 @@ function setHelp(on) {
     if (on) { el.dataset.help = el.title; el.removeAttribute('title'); }
     else { el.title = el.dataset.help; delete el.dataset.help; }
   });
-  HELP.tapped = null;
+  HELP.tapped = null; HELP.hold = null;
   showHelpTip(null);
 }
 
@@ -97,7 +142,16 @@ function helpTap(e) {
   const el = helpTarget(e.target);
   HELP.block = !!el && el !== HELP.tapped;
   HELP.tapped = el;
+  const r = e.target.closest && e.target.closest('input[type=range]');
+  HELP.hold = HELP.block && r ? { el: r, v: r.value } : null;
   showHelpTip(el, e.clientX, e.clientY);
+}
+// A slider moves on the touch itself, not on the click: during a first tap
+// its value is put back and the app never hears of the change
+function helpHold(e) {
+  if (!HELP.hold || e.target !== HELP.hold.el) return;
+  e.target.value = HELP.hold.v;
+  e.stopImmediatePropagation();
 }
 function helpClick(e) {
   if (!HELP.on || !HELP.block) return;
