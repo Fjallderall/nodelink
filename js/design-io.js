@@ -172,6 +172,7 @@ function commit() {
   if (H.stack.length > 100) H.stack.shift();
   H.idx = H.stack.length - 1;
   syncHistoryButtons();
+  if (H.stack.length > 1) endEmptyStart();       // the first design change ends the first-visit screen
   try { localStorage.setItem(LS_STATE, snap); } catch (e) { /* storage unavailable */ }
 }
 

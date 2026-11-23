@@ -623,7 +623,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 26c (23-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 27a (23-11-2026)';   // shown in About; update with every published phase
 function setTab(name) {
   document.querySelectorAll('.tabs .tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name));
   document.querySelectorAll('aside .panel').forEach(p => { p.hidden = p.dataset.panel !== name; });
@@ -703,6 +703,8 @@ function setupShell() {
     if (tag === 'textarea' || tag === 'select' || (tag === 'input' && !['checkbox', 'range', 'radio'].includes(t.type))) return;
     if (document.getElementById('about').open) return;
     const k = e.key.toLowerCase();
+    if (k === '?') { e.preventDefault(); setHelp(!HELP.on); return; }
+    if (k === 'escape' && HELP.on) { setHelp(false); return; }
     if (k === 'escape') { if (ANIM.ambient) exitAmbient(); else if (!$('export-drawer').hidden) setDrawer(false); return; }
     if (k === 'f') { e.preventDefault(); ANIM.ambient ? exitAmbient() : (e.shiftKey ? enterScenes() : enterAmbient()); return; }
     if (ANIM.ambient) return;                  // no editing keys on a background screen
@@ -1242,9 +1244,11 @@ function bindCanvasPointer() {
 window.onload = () => {
   layoutCanvas();
 
-  // Restore last session and export settings
+  // Restore last session and export settings (none: first visit)
+  let firstVisit = true;
   try {
     const saved = localStorage.getItem(LS_STATE);
+    firstVisit = !saved;
     if (saved) applyDesign(JSON.parse(saved));
   } catch (e) { /* first run or bad data: keep defaults */ }
   try {
@@ -1258,6 +1262,7 @@ window.onload = () => {
   renderNodeRoster();
   renderFavs();
   setupEvents();
+  initHelp(firstVisit);
   commit();
   update();
   // Labels use a web font: redraw once it has loaded

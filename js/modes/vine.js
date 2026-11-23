@@ -11,21 +11,20 @@
 // own, so an option changes only what it is about.
 // Used by: RENDERERS.
 const VINE_LEAVES = ['almond', 'round', 'ivy'], VINE_BLOOMS = ['blossom', 'daisy', 'rose'];
-// Bloom (animation only): the animation time while recording live frames, else
-// null (stills and exports: every flower fully open). Each flower opens and
-// closes on its own period, phase from a hash of its position (no R() draws).
-let BLOOM_T = null;
+// Bloom (animation only): liveOf(c).bloomT, the animation time while recording
+// live frames, else null (stills and exports: every flower fully open). Each
+// flower opens and closes on its own period, phase from a hash of its position
+// (no R() draws).
 const BLOOM_MIN = 0.45, BLOOM_PER = 9, BLOOM_PER_NODE = 14;   // petal length when closed; seconds per cycle (+ up to 6)
 // Seasons: the year as a number 0–4 (0 the start of spring, 1 summer = the
 // plain design, 2 autumn, 3 winter). A still uses its Season setting
-// (SEASON_YR); with Seasons playing, SEASON_T is the years gone by since Play
+// (SEASON_YR); with Seasons playing, liveOf(c).seasonT is the years since Play
 // (added to that start). Each leaf, bud and flower has its own moments in the
 // year, hashed from its index (no R() draws), so a season changes what is
 // drawn and how, never the layout: young light-green leaves unfold in spring,
 // flowers open, drop their petals and leave a hip; in autumn the leaves turn
 // and fall (Rec.markLeaf, drawn falling by drawPetals); winter is bare, grey
 // stems and closed node blooms.
-let SEASON_T = null;
 const VINE_SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 const SEASON_YR = { spring: 0.6, summer: 1, autumn: 2.45, winter: 3.4 };
 const SEASON_S = 12;                     // seconds per season at Season speed 1
@@ -46,7 +45,8 @@ function renderVine(c, nodes, density, sigma, weight, seed) {
   const R = stream(0), RL = stream(1), RT = stream(2), RB = stream(3);
   const TAU = Math.PI * 2, J = Math.max(0, Math.min(1, sigma / 100));
   const V = sanVine(S.vine);
-  const Y0 = SEASON_YR[V.season], YR = typeof SEASON_T === 'number' ? ((Y0 + SEASON_T) % 4 + 4) % 4 : Y0;
+  const { bloomT, seasonT } = liveOf(c);
+  const Y0 = SEASON_YR[V.season], YR = typeof seasonT === 'number' ? ((Y0 + seasonT) % 4 + 4) % 4 : Y0;
   const SEAS = YR !== 1;                             // summer: the plain design, drawn exactly as before
   const sm = f => f <= 0 ? 0 : f >= 1 ? 1 : f * f * (3 - 2 * f);
   const hx = c0 => [parseInt(c0.slice(1, 3), 16), parseInt(c0.slice(3, 5), 16), parseInt(c0.slice(5, 7), 16)];
@@ -66,7 +66,7 @@ function renderVine(c, nodes, density, sigma, weight, seed) {
   };
   // Every leaf for its fall (Seasons playing only): when, and how it looks then
   const fallMark = (i, x, y, a, L, shape) => {
-    if (!c.markLeaf || typeof SEASON_T !== 'number') return;
+    if (!c.markLeaf || typeof seasonT !== 'number') return;
     c.markLeaf({ x: x + Math.cos(a) * L * 0.5, y: y + Math.sin(a) * L * 0.5, a, L, shape, tf: 2.6 + 0.6 * sh(i, 1), y0: Y0, col: SEASON_AUTUMN[Math.floor(sh(i, 2) * 5)], bg: modeBg('vine') });
   };
   // A tip flower in this season: { k: 'flower', amt } | { k: 'bud', s } | { k: 'hip' } | null
@@ -315,9 +315,9 @@ function renderVine(c, nodes, density, sigma, weight, seed) {
     c.globalAlpha = 1; c.strokeStyle = STEM; c.lineWidth = w; pathOf(pts); c.stroke();
   };
   const openAt = (x, y, slow) => {
-    if (typeof BLOOM_T !== 'number') return 1;
+    if (typeof bloomT !== 'number') return 1;
     const h = sr(Math.round(x) * 131 + Math.round(y) * 7919 + 5);
-    const u = 0.5 + 0.5 * Math.sin(BLOOM_T * TAU / ((slow ? BLOOM_PER_NODE : BLOOM_PER) + h * 6) + h * TAU);
+    const u = 0.5 + 0.5 * Math.sin(bloomT * TAU / ((slow ? BLOOM_PER_NODE : BLOOM_PER) + h * 6) + h * TAU);
     return BLOOM_MIN + (1 - BLOOM_MIN) * u * u * (3 - 2 * u);
   };
   const near = (x, y) => nodes.some(n => Math.hypot(x - n.x, y - n.y) < BLOOM_R * sz(n) * 1.1);

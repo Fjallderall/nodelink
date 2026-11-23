@@ -90,8 +90,8 @@ function drawGuides(c, raw) {
 }
 
 // view: { scale, tx, ty } maps world → target pixels
-// opts: { map, noBackground, overlay }
-let CUR_MAP = null;     // colour map of the render in progress (for fade buffers)
+// opts: { map, noBackground, overlay, still, plain }
+// plain: leave out the overlay effects (falling petals and leaves): cut and strokes SVG
 // Exports, bounds and the cut while paused: the paused frame (what is on
 // screen), unless opts.still. Stopped or playing: the design itself.
 function frozenFrame() {
@@ -103,7 +103,6 @@ function renderTo(raw, w, h, view, opts = {}) {
   try { renderToInner(raw, w, h, view, opts); } finally { ANIM.live = keepLive; ANIM.exporting = keepExp; }
 }
 function renderToInner(raw, w, h, view, opts) {
-  CUR_MAP = opts.map || null;
   const c = paletteCtx(raw, opts.map);
   if (!opts.noBackground) {
     c.fillStyle = modeBg(S.mode);
@@ -112,7 +111,7 @@ function renderToInner(raw, w, h, view, opts) {
   c.save();
   c.translate(view.tx, view.ty);
   c.scale(view.scale, view.scale);
-  renderDesign(c);
+  renderDesign(c, { raw, map: opts.map || null, plain: !!opts.plain });
 
   // Editor overlay: drawn unmapped on the live canvas only
   if (opts.overlay) drawGuides(c, raw);
@@ -686,8 +685,7 @@ function exportStrokeSVG() {
     // Paused with Colour cycle: the hue on screen, applied to each colour
     let map = makeColorMap(S.palette);
     if (frozenFrame() && canvas.style.filter) map = cssFilterMap(map, canvas.style.filter);
-    FX_PLAIN = true;
-    try { renderTo(svg, L.W, L.H, L.view, { map, noBackground: E.transparent }); } finally { FX_PLAIN = false; }
+    renderTo(svg, L.W, L.H, L.view, { map, noBackground: E.transparent, plain: true });
     if (!(await download(new Blob([svg.getSvg()], { type: 'image/svg+xml;charset=utf-8' }), `${fileBase()}-strokes.svg`))) return;
     setStatus('Editable SVG saved');
   });
@@ -697,9 +695,7 @@ function exportStrokeSVG() {
 // (at a lower resolution) by the live cut preview, so both follow one recipe.
 function cutPrep(tracePx, wantDiff = false) {
   const L = exportLayout(tracePx);
-  FX_PLAIN = true;
-  let ec;
-  try { ec = renderRaster(L, STENCIL_MAP); } finally { FX_PLAIN = false; }
+  const ec = renderRaster(L, STENCIL_MAP, { plain: true });
   // Thinnest line at this size (Stroke Weight ≈ thinnest line in world units)
   const pxPerMm = L.W / (L.cmW * 10);
   // Cathedral Glass is solid pieces with lead gaps between them, not lines:

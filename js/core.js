@@ -30,6 +30,7 @@
    design-io.js       STATUS · DESIGN SNAPSHOTS, HISTORY, AUTOSAVE · FAVOURITES
    ui.js              NODE DOM · UPDATE · UI SYNC (+ Colour scheme UI) ·
                       SHELL · EVENTS · INIT
+   help.js            FIRST VISIT AND HELP (empty start, ? help mode)
 
    The user places nodes; a generator "mode" draws a pattern around them;
    the result is shown on a canvas and exported as PNG, strokes SVG (for

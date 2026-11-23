@@ -51,11 +51,10 @@ const PALETTES = [
   { id: 'paper', name: 'Ink on paper', bg: '#f5f2ea', ink: '#3a3a3a', glow: '#000000' }
 ];
 
-let PAL_L2 = false;     // set while Layer 2 is replayed (drawSymmetric)
-
 // pal: a palette like S.palette ({ mode, ink, paper, glow, l2 }). Returns
-// a function colour string → colour string (cached per layer), or null
-// when the original colours stay.
+// a function colour string → colour string (cached), or null when the
+// original colours stay. With a Layer 2 palette, map.l2 is Layer 2's map
+// (drawSymmetric picks it per list).
 function makeColorMap(pal) {
   if (!pal) return null;
   const l2 = pal.l2 && S.layer.mode !== 'none' ? pal.l2 : null;
@@ -103,29 +102,32 @@ function makeColorMap(pal) {
     return (mode === 'nebula' || mode === 'glass' ? hueRamp : ramp)(P(src.ink), P(src.glow || src.ink), mode);
   };
   const fns = [pick(S.mode, false), l2 ? pick(S.layer.mode, true) : null];
-  const caches = [new Map(), new Map()];
-  return (v) => {
-    const k = PAL_L2 && l2 ? 1 : 0;
-    const fn = fns[k];
-    if (!fn) return v;
-    const cache = caches[k];
-    if (cache.has(v)) return cache.get(v);
-    let res = v;
-    if (typeof v === 'string' && v.startsWith('hsla(') && pal.mode === 'stencil') res = 'rgba(0,0,0,0)';   // nebula glow
-    else {
-      const c = parseColor(v);
-      if (c) { const t = fn(c); res = `rgba(${Math.round(t.r)},${Math.round(t.g)},${Math.round(t.b)},${c.a})`; }
-    }
-    cache.set(v, res);
-    return res;
+  const mapOf = fn => {
+    const cache = new Map();
+    return (v) => {
+      if (!fn) return v;
+      if (cache.has(v)) return cache.get(v);
+      let res = v;
+      if (typeof v === 'string' && v.startsWith('hsla(') && pal.mode === 'stencil') res = 'rgba(0,0,0,0)';   // nebula glow
+      else {
+        const c = parseColor(v);
+        if (c) { const t = fn(c); res = `rgba(${Math.round(t.r)},${Math.round(t.g)},${Math.round(t.b)},${c.a})`; }
+      }
+      cache.set(v, res);
+      return res;
+    };
   };
+  const map = mapOf(fns[0]);
+  if (l2) map.l2 = mapOf(fns[1]);
+  return map;
 }
 
 // Colour cycle in vector exports. On screen the cycle is a CSS filter on the
 // canvas (sepia, saturate, hue-rotate); a PNG bakes it in with ctx.filter,
 // but an SVG has no pixels, so every colour is run through the same filter
 // maths instead: the Filter Effects colour matrices, in sRGB, clamped after
-// each step as the browser does. Wraps an existing colour map (or none).
+// each step as the browser does. Wraps an existing colour map (or none), and
+// its Layer 2 map (map.l2) likewise.
 function cssFilterMap(base, filter) {
   const M = [];
   for (const [, fn, arg] of filter.matchAll(/([a-z-]+)\(([-\d.]+)(?:deg)?\)/g)) {
@@ -141,7 +143,7 @@ function cssFilterMap(base, filter) {
   }
   if (!M.length) return base;
   const cache = new Map(), cl = v => Math.max(0, Math.min(1, v));
-  return (v0) => {
+  const out = (v0) => {
     const v = base ? base(v0) : v0;
     if (typeof v !== 'string') return v;           // gradients and patterns pass through
     if (cache.has(v)) return cache.get(v);
@@ -155,6 +157,8 @@ function cssFilterMap(base, filter) {
     cache.set(v, res);
     return res;
   };
+  if (base && base.l2) out.l2 = cssFilterMap(base.l2, filter);
+  return out;
 }
 
 // Wraps a 2D context (or the SVG builder) so colour assignments go through map()

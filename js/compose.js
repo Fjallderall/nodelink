@@ -476,14 +476,26 @@ function fadeBuffer(i, w, h) {
 // every blob shows once, and over 3 GD round each edge the copies cross-fade.
 // (Not 1/n alpha n×: the faint glow discs would round away in 8-bit colour.)
 // Animation: F.items are designs (old one fading, new one drawing on).
-// c: target context (screen, offscreen or C2S). dl: { main, layer } from
-// getDisplayList(), used when F is null. F: ANIM.frame while animating.
-function drawSymmetric(c, dl, F = null) {
+// c: target context (screen, offscreen or C2S), already through the colour
+// map. dl: { main, layer } from getDisplayList(), used when F is null.
+// F: ANIM.frame while animating. o: { raw, map, gaze, plain } from
+// renderDesign: the unmapped context, the colour map (map.l2: Layer 2's),
+// the design-page transform (Blink gaze) and plain (leave out the overlay
+// effects: cut and strokes SVG).
+// Each helper below takes D, the replay's shared state (symState).
+function drawSymmetric(c, dl, F = null, o = {}) {
+  const D = symState(c, F, o);
+  symLists(dl, F).forEach((L, li) => symDrawList(D, L, li));
+}
+function symState(c, F, o) {
   const copies = symCopies();
-  const alpha = S.layer.strength / 100;
-  const rotOnly = copies.length > 1 && !S.sym.mirror;
-  const GD = Math.min(Math.PI * 2 / copies.length / 8, 0.12);
-  const lists = [];
+  return { c, F, copies, raw: o.raw || c, map: o.map || null, gaze: o.gaze || null, plain: !!o.plain,
+    rotOnly: copies.length > 1 && !S.sym.mirror, GD: Math.min(Math.PI * 2 / copies.length / 8, 0.12) };
+}
+// The lists to draw, in order: [ops, alpha, prog, warp, isL2, base]
+// (prog: draw-on progress, 1 when static; base: the layer's own strength)
+function symLists(dl, F) {
+  const alpha = S.layer.strength / 100, lists = [];
   // Strikes: the resting discharge is dimmed, the strikes draw over it
   const strikeRest = m => F && F.sk != null && STRIKE_MODES.includes(m) ? STRIKE_REST : 1;
   // Breathing: a warp per Foam list, from its own bubbles
@@ -494,246 +506,226 @@ function drawSymmetric(c, dl, F = null) {
     lists.push([it.dl.main, it.alpha * strikeRest(S.mode), it.prog, addWarps(addWarps(it.warp, it.windM), breath(it.dl.main, S.mode)), false, 1]);
   });
   else { if (dl.layer) lists.push([dl.layer, alpha, 1, null, true, alpha]); lists.push([dl.main, 1, 1, null, false, 1]); }
-  // prog: draw-on progress (animation), 1 when static
-  const drawAll = (x, ops, a, prog, wp) => {
-    // A bent Foam list with several copies: bend it once (bakeWarp), then
-    // replay the bent copy per wedge, rather than bend every point per copy
-    if (F && wp && copies.length > 1 && prog >= 1 && ops.bubbles) { ops = bakeWarp(ops, wp); wp = null; }
-    const draw = (o2) => F ? replayAnim(o2, wp ? warpCtx(x, wp) : x, a, F.lw, prog, F.np, F.rt || 0, F.lt ?? null) : replay(o2, x, a);
-    const each = (wid, fn) => copies.forEach(cp => {
-      x.save();
-      if (cp.wedge) { wedgePath(x, cp.wedge[0] - wid, cp.wedge[1] + wid); x.clip(); }
-      applyCopy(x, cp);
-      fn();
-      x.restore();
-    });
-    const sp = rotOnly && splitGlow(ops);
-    if (!sp) { each(0, () => draw(ops)); return; }
-    sp.glows.forEach((g, j) => each(((j + 0.5) / GLOW_STEPS - 0.5) * 3 * GD, () => draw(g)));
-    each(0, () => draw(sp.rest));
-  };
-  // Blink: lids over the microscope's nuclei, drawn every frame on top of the
-  // list (cached or not), through the same copies, palette and drift bend
-  // erase: the list is in its own buffer (faint layer): lids first cut out
-  // what they cover, see drawLid
-  const drawLids = (x, ops, a, prog, wp, erase = false) => {
-    if (!F || !ANIM.opts.blink || !ops.eyes || (prog < 1 && !F.np) || a <= 0.003) return;
-    // Draw on per node: only eyes whose node is fully drawn (eye id = node index)
-    const open = e => !(prog < 1 && F.np) || (F.np[e.id] ?? 1) >= 1;
-    const t = ANIM.blinkTime, shut = ops.eyes.map(e => blinkAmt(t, e.id));
-    // The pointer (smoothed), from design-page coordinates to the screen
-    const G = ANIM.gaze && GAZE_BASE ? GAZE_BASE.transformPoint(new DOMPoint(ANIM.gaze.x, ANIM.gaze.y)) : null;
-    if (!G && !shut.some(v => v > 0)) return;
-    copies.forEach(cp => {
-      x.save();
-      const Tw = x.getTransform();
-      if (cp.wedge) { wedgePath(x, cp.wedge[0], cp.wedge[1]); x.clip(); }
-      applyCopy(x, cp);
-      // …and into this copy's own coordinates, so every copy looks at it
-      const Tc = x.getTransform(), Ti = Tc.inverse();
-      const look = G ? Ti.transformPoint(G) : null;
-      // An eye across a wedge edge is drawn half by this copy, half by the
-      // next (mirrored or turned) one, and the two halves would look different
-      // ways: its pupil moves only along the edge, where they agree (on the
-      // centre, across both edges, it stays put)
-      const L = look && cp.wedge ? Ti.multiply(Tw) : null;
-      const axisOf = e => {
-        if (!L) return null;
-        const P = Tw.inverse().transformPoint(Tc.transformPoint(new DOMPoint(e.x, e.y)));
-        let ax = null, n = 0;
-        for (const an of cp.wedge) {
-          const cs = Math.cos(an), sn = Math.sin(an);
-          if (Math.abs(P.x * sn - P.y * cs) < e.R + e.lw && P.x * cs + P.y * sn > -e.R) {
-            n++;
-            const lx = L.a * cs + L.c * sn, ly = L.b * cs + L.d * sn, ll = Math.hypot(lx, ly) || 1;
-            ax = { x: lx / ll, y: ly / ll, ox: L.e, oy: L.f };     // (ox, oy): the centre, on the edge line
-          }
-        }
-        return n > 1 ? { x: 0, y: 0 } : ax;
-      };
-      const y = wp ? warpCtx(x, wp) : x;
-      ops.eyes.forEach((e, i) => { if ((look || shut[i] > 0) && open(e)) drawLid(y, e, shut[i], a, look, axisOf(e), erase); });
-      x.restore();
-    });
-  };
-  // Current: pulses along the lines, on top, through the same copies and bend
-  const drawCurrent = (x, ops, a, prog, wp, mode) => {
-    if (!F || F.ct == null || !CURRENT_MODES.includes(mode) || a <= 0.003 || (prog < 1 && !F.np)) return;
-    const P = currentFrame(ops, F.ct, wp, prog < 1 ? F.np : null, mode);
-    if (!P.length) return;
-    const col = CUR_COL[mode];
-    copies.forEach(cp => {
-      x.save();
-      if (cp.wedge) { wedgePath(x, cp.wedge[0], cp.wedge[1]); x.clip(); }
-      applyCopy(x, cp);
-      P.forEach(q => drawPulse(x, q, col, Math.min(1, a), F.lw));
-      x.restore();
-    });
-  };
-  // Twinkle: stars flicker and shooting stars cross, on top, through the same copies and bend
-  const drawTwinkles = (x, ops, a, prog, wp, mode) => {
-    if (!F || F.tt == null || !TWINKLE_MODES.includes(mode) || !ops.stars || a <= 0.003 || (prog < 1 && !F.np)) return;
-    const P = twinkleFrame(ops, F.tt, wp, prog, prog < 1 ? F.np : null);
-    const M = prog >= 1 && F.st != null ? shootFrame(ops, F.st) : null;
-    if (!P.length && !M) return;
-    const al = Math.min(1, a);
-    copies.forEach(cp => {
-      x.save();
-      if (cp.wedge) { wedgePath(x, cp.wedge[0], cp.wedge[1]); x.clip(); }
-      applyCopy(x, cp);
-      P.forEach(q => drawTwinkle(x, q, al));
-      if (M) drawShoot(x, M, al);
-      x.restore();
-    });
-  };
-  // Strikes: this frame's bolts and crawling branches, on top, through the same copies and bend
-  const drawStrikes = (x, ops, a, prog, wp, mode) => {
-    if (!F || F.sk == null || !STRIKE_MODES.includes(mode) || !ops.light || a <= 0.001) return;
-    const D = strikeFrame(ops, F.sk, wp, prog < 1 ? (F.np || 'none') : null);
-    if (!D.length) return;
-    const al = Math.min(1, a / STRIKE_REST);
-    copies.forEach(cp => {
-      x.save();
-      if (cp.wedge) { wedgePath(x, cp.wedge[0], cp.wedge[1]); x.clip(); }
-      applyCopy(x, cp);
-      drawStrike(x, D, al, F.lw);
-      x.restore();
-    });
-  };
-  // Sunlight: lit glass pieces redrawn brighter, on top, through the same copies and bend
-  const drawSun = (x, ops, a, prog, wp, mode) => {
-    if (!F || F.su == null || !SUN_MODES.includes(mode) || !ops.panes || a <= 0.003) return;
-    const SP = sunPrep(ops), B = sunBand(F.su, SP.R);
-    if (!B) return;
-    const P = SP.P, n = P.length, need = new Uint8Array(n), step = new Uint8Array(n);
-    copies.forEach(cp => {
-      x.save();
-      const Tw = x.getTransform();
-      if (cp.wedge) { wedgePath(x, cp.wedge[0], cp.wedge[1]); x.clip(); }
-      applyCopy(x, cp);
-      // This copy's own placement in the design's space, so the band is one band across all copies
-      const M = Tw.inverse().multiply(x.getTransform());
-      let any = false;
-      for (let i = 0; i < n; i++) {
-        const p = P[i];
-        need[i] = 0; step[i] = 0;
-        if (prog < 1 && !opShown(ops, p.k, prog, F.np)) continue;
-        const px = M.a * p.cx + M.c * p.cy + M.e, py = M.b * p.cx + M.d * p.cy + M.f;
-        const u = (px * B.ux + py * B.uy - B.b) / B.W, k = Math.exp(-u * u);
-        if (k >= SUN_MIN) step[i] = Math.max(1, Math.round(k * SUN_STEPS));
-        if (step[i] || p.under.some(j => need[j])) { need[i] = 1; any = true; }
+  return lists;
+}
+// Once per symmetry copy: clip to its wedge (widened by wid), place the copy,
+// then fn(Tw), Tw the transform before the copy (only when wantTw)
+function eachCopy(x, copies, fn, wid = 0, wantTw = false) {
+  copies.forEach(cp => {
+    x.save();
+    const Tw = wantTw ? x.getTransform() : null;
+    if (cp.wedge) { wedgePath(x, cp.wedge[0] - wid, cp.wedge[1] + wid); x.clip(); }
+    applyCopy(x, cp);
+    fn(Tw, cp);
+    x.restore();
+  });
+}
+// The colour map for one list: Layer 2 has its own (palette l2)
+function listMap(D, isL2) { return isL2 && D.map && D.map.l2 ? D.map.l2 : D.map; }
+function symDrawList(D, [ops, a, prog, wp, isL2, base], li) {
+  const mode = isL2 ? S.layer.mode : S.mode, F = D.F;
+  const map = listMap(D, isL2), x = map === D.map ? D.c : paletteCtx(D.raw, map);
+  const raw = x.canvas;
+  let lidsDone = false;
+  // Blink on a faint layer (strength < 100%): its strokes are see-through,
+  // so a lid painted over a nucleus would let the nucleus show through.
+  // Draw the layer and its eyes into a buffer at the layer's strength,
+  // where the lids first erase what they cover, then lay the buffer on
+  // the canvas (with the item's fade).
+  if (F && raw && ANIM.opts.blink && ops.eyes && base < 0.995 && (prog >= 1 || F.np) && a > 0.003) {
+    const off = fadeBuffer('lids' + li, raw.width, raw.height), pc = paletteCtx(clearBuffer(off, x.getTransform()), map);
+    symDrawAll(D, pc, ops, base, prog, wp);
+    symDrawLids(D, pc, ops, base, prog, wp, true);
+    blitBuffer(x, off, Math.min(1, a / base));
+    lidsDone = true;
+  } else if (!symDrawCached(D, x, map, ops, a, prog, wp, isL2, base, raw)) {
+    // Fading Nebula (live): drawn whole into a buffer, then faded as one
+    // image. Fading each of its thousands of faint discs makes their 8-bit
+    // alpha steps flicker together mid-dissolve.
+    if (F && a < 0.995 && raw && mode === 'nebula') {
+      const off = fadeBuffer(li, raw.width, raw.height);
+      symDrawAll(D, paletteCtx(clearBuffer(off, x.getTransform()), map), ops, 1, prog, wp);
+      blitBuffer(x, off, a);
+    } else symDrawAll(D, x, ops, a, prog, wp);
+  }
+  if (!lidsDone) symDrawLids(D, x, ops, a, prog, wp);
+  symDrawCurrent(D, x, ops, a, prog, wp, mode);
+  symDrawTwinkles(D, x, ops, a, prog, wp, mode);
+  symDrawStrikes(D, x, ops, a, prog, wp, mode);
+  symDrawSun(D, x, ops, a, prog, wp, mode);
+  drawPetals(x, ops, a, prog, wp, isL2, D.copies, F, D.plain);
+}
+// An offscreen buffer cleared, its context set to transform T
+function clearBuffer(buf, T) {
+  const oc = buf.getContext('2d');
+  oc.setTransform(1, 0, 0, 1, 0, 0);
+  oc.globalAlpha = 1;
+  oc.clearRect(0, 0, buf.width, buf.height);
+  oc.setTransform(T);
+  return oc;
+}
+// Lays a buffer over x's whole canvas at alpha
+function blitBuffer(x, buf, alpha) {
+  x.save();
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.globalAlpha = alpha;
+  x.drawImage(buf, 0, 0);
+  x.restore();
+}
+// Static while playing: rasterise once (at the layer's own strength), then
+// blit with the item's fade. Returns true when it drew the list.
+function symDrawCached(D, x, map, ops, a, prog, wp, isL2, base, raw) {
+  const F = D.F;
+  if (!(F && raw && !wp && prog >= 1 && F.lw === 1 && !ANIM.exporting && !(F.rt && ops.turns) && !(F.lt != null && ops.life))) return false;
+  ITEM_SEEN_NEXT.add(ops);
+  // Also when fading on its first frame, so the fade looks the same
+  // before and after the buffer exists (group alpha, not per stroke)
+  if (!ITEM_SEEN.has(ops) && a >= 0.995) return false;
+  const T = x.getTransform();
+  const sig = [raw.width, raw.height, T.a, T.b, T.c, T.d, T.e, T.f, isL2, base, JSON.stringify(S.palette), S.mode, S.layer.mode].join();
+  const { buf, fresh } = itemBuffer(ops, sig);
+  if (fresh) {
+    if (buf.width !== raw.width || buf.height !== raw.height) { buf.width = raw.width; buf.height = raw.height; }
+    symDrawAll(D, paletteCtx(clearBuffer(buf, T), map), ops, base, 1, null);
+  }
+  blitBuffer(x, buf, Math.min(1, a / base));
+  return true;
+}
+function symDrawAll(D, x, ops, a, prog, wp) {
+  const F = D.F, copies = D.copies;
+  // A bent Foam list with several copies: bend it once (bakeWarp), then
+  // replay the bent copy per wedge, rather than bend every point per copy
+  if (F && wp && copies.length > 1 && prog >= 1 && ops.bubbles) { ops = bakeWarp(ops, wp); wp = null; }
+  const draw = (o2) => F ? replayAnim(o2, wp ? warpCtx(x, wp) : x, a, F.lw, prog, F.np, F.rt || 0, F.lt ?? null) : replay(o2, x, a);
+  const sp = D.rotOnly && splitGlow(ops);
+  if (!sp) { eachCopy(x, copies, () => draw(ops)); return; }
+  sp.glows.forEach((g, j) => eachCopy(x, copies, () => draw(g), ((j + 0.5) / GLOW_STEPS - 0.5) * 3 * D.GD));
+  eachCopy(x, copies, () => draw(sp.rest));
+}
+// Blink: lids over the microscope's nuclei, drawn every frame on top of the
+// list (cached or not), through the same copies, palette and drift bend
+// erase: the list is in its own buffer (faint layer): lids first cut out
+// what they cover, see drawLid
+function symDrawLids(D, x, ops, a, prog, wp, erase = false) {
+  const F = D.F;
+  if (!F || !ANIM.opts.blink || !ops.eyes || (prog < 1 && !F.np) || a <= 0.003) return;
+  // Draw on per node: only eyes whose node is fully drawn (eye id = node index)
+  const open = e => !(prog < 1 && F.np) || (F.np[e.id] ?? 1) >= 1;
+  const t = ANIM.blinkTime, shut = ops.eyes.map(e => blinkAmt(t, e.id));
+  // The pointer (smoothed), from design-page coordinates to the screen
+  const G = ANIM.gaze && D.gaze ? D.gaze.transformPoint(new DOMPoint(ANIM.gaze.x, ANIM.gaze.y)) : null;
+  if (!G && !shut.some(v => v > 0)) return;
+  eachCopy(x, D.copies, (Tw, cp) => {
+    // …and into this copy's own coordinates, so every copy looks at it
+    const Tc = x.getTransform(), Ti = Tc.inverse();
+    const look = G ? Ti.transformPoint(G) : null;
+    const axisOf = lidAxis(cp, look && cp.wedge ? Ti.multiply(Tw) : null, Tw, Tc);
+    const y = wp ? warpCtx(x, wp) : x;
+    ops.eyes.forEach((e, i) => { if ((look || shut[i] > 0) && open(e)) drawLid(y, e, shut[i], a, look, axisOf(e), erase); });
+  }, 0, true);
+}
+// An eye across a wedge edge is drawn half by this copy, half by the next
+// (mirrored or turned) one, and the two halves would look different ways:
+// its pupil moves only along the edge, where they agree (on the centre,
+// across both edges, it stays put). Returns e → that axis, or null.
+function lidAxis(cp, L, Tw, Tc) {
+  return e => {
+    if (!L) return null;
+    const P = Tw.inverse().transformPoint(Tc.transformPoint(new DOMPoint(e.x, e.y)));
+    let ax = null, n = 0;
+    for (const an of cp.wedge) {
+      const cs = Math.cos(an), sn = Math.sin(an);
+      if (Math.abs(P.x * sn - P.y * cs) < e.R + e.lw && P.x * cs + P.y * sn > -e.R) {
+        n++;
+        const lx = L.a * cs + L.c * sn, ly = L.b * cs + L.d * sn, ll = Math.hypot(lx, ly) || 1;
+        ax = { x: lx / ll, y: ly / ll, ox: L.e, oy: L.f };     // (ox, oy): the centre, on the edge line
       }
-      if (any) {
-        const y = wp ? warpCtx(x, wp) : x;
-        y.globalAlpha = Math.min(1, a); y.lineJoin = 'round'; y.lineCap = 'round';
-        for (let i = 0; i < n; i++) if (need[i]) drawPane(y, P[i], step[i], F.lw);
-        // Heavier leads over any redrawn piece
-        SP.L.forEach(l => {
-          if (!P.some((p, i) => need[i] && SP.hit(p.b, l.b))) return;
-          y.strokeStyle = l.lead; y.lineWidth = l.lw * F.lw;
-          y.beginPath(); l.pts.forEach((v, i) => i ? y.lineTo(v.x, v.y) : y.moveTo(v.x, v.y)); y.closePath(); y.stroke();
-        });
-      }
-      x.restore();
-    });
+    }
+    return n > 1 ? { x: 0, y: 0 } : ax;
   };
-  lists.forEach(([ops, a, prog, wp, isL2, base], li) => {
-    PAL_L2 = isL2;
-    let lidsDone = false;
-    try { (() => {
-      const raw = c.canvas;
-      // Blink on a faint layer (strength < 100%): its strokes are see-through,
-      // so a lid painted over a nucleus would let the nucleus show through.
-      // Draw the layer and its eyes into a buffer at the layer's strength,
-      // where the lids first erase what they cover, then lay the buffer on
-      // the canvas (with the item's fade).
-      if (F && raw && ANIM.opts.blink && ops.eyes && base < 0.995 && (prog >= 1 || F.np) && a > 0.003) {
-        const off = fadeBuffer('lids' + li, raw.width, raw.height), oc = off.getContext('2d');
-        oc.setTransform(1, 0, 0, 1, 0, 0);
-        oc.globalAlpha = 1;
-        oc.clearRect(0, 0, off.width, off.height);
-        oc.setTransform(c.getTransform());
-        const pc = paletteCtx(oc, CUR_MAP);
-        drawAll(pc, ops, base, prog, wp);
-        drawLids(pc, ops, base, prog, wp, true);
-        c.save();
-        c.setTransform(1, 0, 0, 1, 0, 0);
-        c.globalAlpha = Math.min(1, a / base);
-        c.drawImage(off, 0, 0);
-        c.restore();
-        lidsDone = true;
-        return;
-      }
-      // Static while playing: rasterise once (at the layer's own strength),
-      // then blit with the item's fade
-      if (F && raw && !wp && prog >= 1 && F.lw === 1 && !ANIM.exporting && !(F.rt && ops.turns) && !(F.lt != null && ops.life)) {
-        ITEM_SEEN_NEXT.add(ops);
-        // Also when fading on its first frame, so the fade looks the same
-        // before and after the buffer exists (group alpha, not per stroke)
-        if (ITEM_SEEN.has(ops) || a < 0.995) {
-          const T = c.getTransform();
-          const sig = [raw.width, raw.height, T.a, T.b, T.c, T.d, T.e, T.f, isL2, base, JSON.stringify(S.palette), S.mode, S.layer.mode].join();
-          const { buf, fresh } = itemBuffer(ops, sig);
-          if (fresh) {
-            if (buf.width !== raw.width || buf.height !== raw.height) { buf.width = raw.width; buf.height = raw.height; }
-            const oc = buf.getContext('2d');
-            oc.setTransform(1, 0, 0, 1, 0, 0);
-            oc.globalAlpha = 1;
-            oc.clearRect(0, 0, buf.width, buf.height);
-            oc.setTransform(T);
-            drawAll(paletteCtx(oc, CUR_MAP), ops, base, 1, null);
-          }
-          c.save();
-          c.setTransform(1, 0, 0, 1, 0, 0);
-          c.globalAlpha = Math.min(1, a / base);
-          c.drawImage(buf, 0, 0);
-          c.restore();
-          return;
-        }
-      }
-      // Fading Nebula (live): drawn whole into a buffer, then faded as one
-      // image. Fading each of its thousands of faint discs makes their 8-bit
-      // alpha steps flicker together mid-dissolve.
-      if (F && a < 0.995 && raw && (isL2 ? S.layer.mode : S.mode) === 'nebula') {
-        const off = fadeBuffer(li, raw.width, raw.height), oc = off.getContext('2d');
-        oc.setTransform(1, 0, 0, 1, 0, 0);
-        oc.globalAlpha = 1;
-        oc.clearRect(0, 0, off.width, off.height);
-        oc.setTransform(c.getTransform());
-        drawAll(paletteCtx(oc, CUR_MAP), ops, 1, prog, wp);
-        c.save();
-        c.setTransform(1, 0, 0, 1, 0, 0);
-        c.globalAlpha = a;
-        c.drawImage(off, 0, 0);
-        c.restore();
-        return;
-      }
-      drawAll(c, ops, a, prog, wp);
-    })(); if (!lidsDone) drawLids(c, ops, a, prog, wp);
-    drawCurrent(c, ops, a, prog, wp, isL2 ? S.layer.mode : S.mode);
-    drawTwinkles(c, ops, a, prog, wp, isL2 ? S.layer.mode : S.mode);
-    drawStrikes(c, ops, a, prog, wp, isL2 ? S.layer.mode : S.mode);
-    drawSun(c, ops, a, prog, wp, isL2 ? S.layer.mode : S.mode);
-    drawPetals(c, ops, a, prog, wp, isL2, copies, F);
-    } finally { PAL_L2 = false; }
+}
+// Current: pulses along the lines, on top, through the same copies and bend
+function symDrawCurrent(D, x, ops, a, prog, wp, mode) {
+  const F = D.F;
+  if (!F || F.ct == null || !CURRENT_MODES.includes(mode) || a <= 0.003 || (prog < 1 && !F.np)) return;
+  const P = currentFrame(ops, F.ct, wp, prog < 1 ? F.np : null, mode);
+  if (!P.length) return;
+  const col = CUR_COL[mode];
+  eachCopy(x, D.copies, () => P.forEach(q => drawPulse(x, q, col, Math.min(1, a), F.lw)));
+}
+// Twinkle: stars flicker and shooting stars cross, on top, through the same copies and bend
+function symDrawTwinkles(D, x, ops, a, prog, wp, mode) {
+  const F = D.F;
+  if (!F || F.tt == null || !TWINKLE_MODES.includes(mode) || !ops.stars || a <= 0.003 || (prog < 1 && !F.np)) return;
+  const P = twinkleFrame(ops, F.tt, wp, prog, prog < 1 ? F.np : null);
+  const M = prog >= 1 && F.st != null ? shootFrame(ops, F.st) : null;
+  if (!P.length && !M) return;
+  const al = Math.min(1, a);
+  eachCopy(x, D.copies, () => {
+    P.forEach(q => drawTwinkle(x, q, al));
+    if (M) drawShoot(x, M, al);
+  });
+}
+// Strikes: this frame's bolts and crawling branches, on top, through the same copies and bend
+function symDrawStrikes(D, x, ops, a, prog, wp, mode) {
+  const F = D.F;
+  if (!F || F.sk == null || !STRIKE_MODES.includes(mode) || !ops.light || a <= 0.001) return;
+  const S2 = strikeFrame(ops, F.sk, wp, prog < 1 ? (F.np || 'none') : null);
+  if (!S2.length) return;
+  const al = Math.min(1, a / STRIKE_REST);
+  eachCopy(x, D.copies, () => drawStrike(x, S2, al, F.lw));
+}
+// Sunlight: lit glass pieces redrawn brighter, on top, through the same copies and bend
+function symDrawSun(D, x, ops, a, prog, wp, mode) {
+  const F = D.F;
+  if (!F || F.su == null || !SUN_MODES.includes(mode) || !ops.panes || a <= 0.003) return;
+  const SP = sunPrep(ops), B = sunBand(F.su, SP.R);
+  if (!B) return;
+  const P = SP.P, n = P.length, need = new Uint8Array(n), step = new Uint8Array(n);
+  eachCopy(x, D.copies, Tw => {
+    // This copy's own placement in the design's space, so the band is one band across all copies
+    const M = Tw.inverse().multiply(x.getTransform());
+    let any = false;
+    for (let i = 0; i < n; i++) {
+      const p = P[i];
+      need[i] = 0; step[i] = 0;
+      if (prog < 1 && !opShown(ops, p.k, prog, F.np)) continue;
+      const px = M.a * p.cx + M.c * p.cy + M.e, py = M.b * p.cx + M.d * p.cy + M.f;
+      const u = (px * B.ux + py * B.uy - B.b) / B.W, k = Math.exp(-u * u);
+      if (k >= SUN_MIN) step[i] = Math.max(1, Math.round(k * SUN_STEPS));
+      if (step[i] || p.under.some(j => need[j])) { need[i] = 1; any = true; }
+    }
+    if (any) drawSunPanes(wp ? warpCtx(x, wp) : x, SP, need, step, a, F.lw);
+  }, 0, true);
+}
+// The lit pieces, then heavier leads over any redrawn piece
+function drawSunPanes(y, SP, need, step, a, lw) {
+  const P = SP.P;
+  y.globalAlpha = Math.min(1, a); y.lineJoin = 'round'; y.lineCap = 'round';
+  for (let i = 0; i < P.length; i++) if (need[i]) drawPane(y, P[i], step[i], lw);
+  SP.L.forEach(l => {
+    if (!P.some((p, i) => need[i] && SP.hit(p.b, l.b))) return;
+    y.strokeStyle = l.lead; y.lineWidth = l.lw * lw;
+    y.beginPath(); l.pts.forEach((v, i) => i ? y.lineTo(v.x, v.y) : y.moveTo(v.x, v.y)); y.closePath(); y.stroke();
   });
 }
 
 // ── The whole design ──
-// Draws the full composed design in world coordinates
-function renderDesign(c) {
+// Draws the full composed design in world coordinates. o: { raw, map, plain }
+// from renderTo (see drawSymmetric).
+function renderDesign(c, o = {}) {
   const F = ANIM.live ? ANIM.frame : null;
   const dl = F ? null : getDisplayList();
   const poly = boundaryPoly();
   const pg = pageActive() && S.page.clip ? pageRect(true) : null;
-  GAZE_BASE = c.getTransform();
+  const gaze = c.getTransform();
   c.save();
   if (pg) { c.beginPath(); c.rect(pg.x, pg.y, pg.w, pg.h); c.clip(); }
   c.save();
   if (poly) { polyPath(c, poly); c.clip(); }
   if (F && F.spin) c.rotate(F.spin);
   applyXf(c);
-  drawSymmetric(c, dl, F);
+  drawSymmetric(c, dl, F, { ...o, gaze });
   c.restore();
   if (poly) drawBorder(c);
   c.restore();

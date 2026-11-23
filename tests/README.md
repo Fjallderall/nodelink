@@ -6,6 +6,7 @@ Playwright (Python) with Chrome. Each script takes the HTML file to test as its 
 | --- | --- |
 | `baseline.py FILE OUT.json` | Pixel baseline: every mode × boundary, symmetry, PCB in depth, Layer 2 combinations, strokes SVG. Hashes per render; compare with `reference/baseline-phase25.json` (all keys must match after a refactor). |
 | `events.py FILE OUT.json` | Drives ~106 controls in order with a fixed Math.random and snapshots the design, export settings, view and history after each step. Compare with `reference/events-phase25.json`. |
+| `frames.py FILE OUT.json` | Animation frames on a fake clock (rAF run by hand, fixed Math.random): one scenario per effect (Seasons, Bloom, dew, Symbol swap, PCB on PCB, Blink with a Layer 2 palette, Sunlight, Twinkle, Strikes), canvas hashes every 12 frames plus the paused PNG, strokes SVG and cut input. Compare with `reference/frames-phase26.json`. |
 | `touch.py FILE…` | Touch pan, pinch and move-design on a phone-sized screen; prints the results per file to compare. |
 | `about.py FILE` | About dialog: entry points, Esc / × / backdrop, shortcuts blocked while open. |
 | `anim.py FILE…` | Plays PCB setups with Draw on, Drift and Current; reports page errors. |

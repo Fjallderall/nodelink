@@ -86,8 +86,18 @@ Rec.prototype.grow = function (g) {
   else { g.i0 = this.ops.length; g.i1 = -1; L.push(g); }
 };
 
-function record(fn) {
+// What a recording may read besides S, passed explicitly to every renderer as
+// c.live (read through liveOf(c)): the live animation inputs (null in stills
+// and exports) and, for a PCB Layer 2 over a PCB main, the main board's copper.
+//   dewT: animation time for rolling dew (Spiderweb)   bloomT: time for Bloom,
+//   seasonT: years gone by for Seasons (Vines)   glyphT / glyphP: time and
+//   period for Symbol swap, chaosBase: the real node positions while drifting
+//   (Arcane, Chaosgate)   obst: PCB obstacles (renderPCB.lastObst of the main)
+const REC_STILL = Object.freeze({ dewT: null, bloomT: null, seasonT: null, glyphT: null, glyphP: 3.5, chaosBase: null, obst: null });
+function liveOf(c) { return (c && c.live) || REC_STILL; }
+function record(fn, live = REC_STILL) {
   const r = new Rec();
+  r.live = live;
   r.globalAlpha = 1;
   r.shadowBlur = 0;
   r.setLineDash([]);
@@ -141,25 +151,24 @@ function getDisplayList() {
   return DL;
 }
 
-// Records main + layer for the current S (no caching)
-// PCB on PCB: the layer is routed round the main board's copper
-let PCB_OBST = null;
+// Records main + layer for the current S (no caching). live: see REC_STILL.
+// PCB on PCB: the layer is routed round the main board's copper (live.obst)
 // While playing, a layer whose inputs did not change since the last recording
 // keeps that recording (REC_MEMO): live re-records for one layer (Bloom on
 // Vines, Rolling dew, Symbol swap) then leave the other alone, so its item
 // cache and Draw on times survive. A layer's inputs: everything in dlKey()
-// plus the live globals its mode reads (recTimeKey).
+// plus the live inputs its mode reads (recTimeKey).
 const REC_MEMO = { main: null, layer: null };
-function recTimeKey(mode) {
-  return mode === 'vine' ? [BLOOM_T, SEASON_T] : mode === 'spiderweb' ? [DEW_T]
-    : mode === 'arcane' || mode === 'chaosgate' ? [GLYPH_T, GLYPH_P, CHAOS_BASE ? CHAOS_BASE.map(n => [n.x, n.y]) : null] : [];
+function recTimeKey(mode, L) {
+  return mode === 'vine' ? [L.bloomT, L.seasonT] : mode === 'spiderweb' ? [L.dewT]
+    : mode === 'arcane' || mode === 'chaosgate' ? [L.glyphT, L.glyphP, L.chaosBase ? L.chaosBase.map(n => [n.x, n.y]) : null] : [];
 }
-function recMemo(slot, mode, fn) {
+function recMemo(slot, mode, live, fn) {
   if (!ANIM.playing) { REC_MEMO[slot] = null; return fn(); }
-  const base = dlKey(), key = base + JSON.stringify(recTimeKey(mode)), m = REC_MEMO[slot];
+  const base = dlKey(), key = base + JSON.stringify(recTimeKey(mode, live)), m = REC_MEMO[slot];
   if (m && m.key === key) return m.ops;
   const ops = fn();
-  // Same design, only a live global moved (Bloom: petal lengths): when the ops
+  // Same design, only a live input moved (Bloom: petal lengths): when the ops
   // line up one for one, keep the Draw on times instead of working them out
   // again every frame (a stroke cut at the pen tip may use the old end points)
   if (m && m.base === base && m.ops.length === ops.length && (m.ops._A || m.ops._AN) && sameOps(m.ops, ops)) {
@@ -173,18 +182,11 @@ function sameOps(a, b) {
   for (let i = 0; i < a.length; i += 3) if (a[i] !== b[i] || a[i + 1] !== b[i + 1]) return false;
   return true;
 }
-function recordDL() {
-  PCB_OBST = null;
-  const main = recMemo('main', S.mode, () => record(r => renderMode(r, S.mode, S.density, S.weight, seedF())));
-  if (S.mode === 'pcb' && S.layer.mode === 'pcb') PCB_OBST = renderPCB.lastObst;
-  try {
-    return {
-      main,
-      layer: S.layer.mode !== 'none' && RENDERERS[S.layer.mode]
-        ? recMemo('layer', S.layer.mode, () => withLayerOpts(() => record(r => renderMode(r, S.layer.mode, S.layer.density, S.layer.weight, layerSeed() / 1000000))))
-        : null
-    };
-  } finally { PCB_OBST = null; }
+function recordDL(live = REC_STILL) {
+  const main = recMemo('main', S.mode, live, () => record(r => renderMode(r, S.mode, S.density, S.weight, seedF()), live));
+  if (S.layer.mode === 'none' || !RENDERERS[S.layer.mode]) return { main, layer: null };
+  const liveL = S.mode === 'pcb' && S.layer.mode === 'pcb' ? { ...live, obst: renderPCB.lastObst } : live;
+  return { main, layer: recMemo('layer', S.layer.mode, liveL, () => withLayerOpts(() => record(r => renderMode(r, S.layer.mode, S.layer.density, S.layer.weight, layerSeed() / 1000000), liveL))) };
 }
 
 // ── Draw-on timing ──

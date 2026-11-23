@@ -124,11 +124,13 @@ function strokeAround(c, pts, holes) {
 }
 
 // nodesNow: the nodes as drawn; while drifting the layout is placed from
-// CHAOS_BASE (the real positions) and bent to nodesNow. CH = S.chaos.
+// chaosBase (liveOf(c): the real positions, so the layout doesn't reshuffle)
+// and bent to nodesNow. CH = S.chaos.
 function renderChaosPillar(c, nodesNow, density, sigma, weight, seed, CH) {
   let s = Math.floor(seed * 1e6) * 29 + 5;
   const R = () => sr(s++);
-  const base = CHAOS_BASE && CHAOS_BASE.length === nodesNow.length ? CHAOS_BASE : null;
+  const CB = liveOf(c).chaosBase;
+  const base = CB && CB.length === nodesNow.length ? CB : null;
   const nodes = base || nodesNow;
   let cx = 0, cy = 0;
   nodes.forEach(n => { cx += n.x; cy += n.y; });

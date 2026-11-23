@@ -29,7 +29,7 @@ Open `index.html` in a browser (double-click works), or use the live site. No bu
   - `core.js`, `svg-builder.js`: state, layers, RNG, geometry, the SVG builder
   - `modes/`: one file per generator mode
   - `display-list.js`, `compose.js`, `anim-effects.js`, `palette.js`: recording, symmetry and composition, animation effects, colour schemes
-  - `render-export.js`, `animation.js`, `design-io.js`, `ui.js`: rendering and exports, the animation loop, history and favourites, the interface
+  - `render-export.js`, `animation.js`, `design-io.js`, `ui.js`, `help.js`: rendering and exports, the animation loop, history and favourites, the interface, the first-visit screen and help mode
 
 The developer overview at the top of `js/core.js` explains how a picture is made. Tests are in `tests/`.
 

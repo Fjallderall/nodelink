@@ -9,12 +9,11 @@
 // the design's rotation), one flower per symmetry copy, only from a flower in
 // its copy's wedge; with Wind it is blown along (+x). Everything is a pure
 // function of time, so a paused frame and its PNG match. Left out of the cut
-// and the SVG exports (FX_PLAIN). Draw on: petals only from an open flower,
+// and the SVG exports (plain, from renderTo). Draw on: petals only from an open flower,
 // fading with it as it folds.
 const PETAL_MODES = ['vine'];
 const PT_SLOT = 5, PT_BIG = 2.5, PT_P = 0.6, PT_LIFE = [4.5, 7.5], PT_FALL = [20, 34], PT_TAU = 0.8;
 const PT_SWAY = [5, 14], PT_FREQ = [1.3, 2.3], PT_IN = 0.35, PT_OUT = 0.3, PT_WIND = 16, PT_MIN = 2.5;
-let FX_PLAIN = false;   // exports that leave out the overlay effects (cut, strokes SVG)
 // This frame's petals of one flower i: [{ dx, dy, rot, flip, L, col, al }],
 // dx / dy from the flower's centre, in world units, screen-aligned
 function petalFrame(p, i, t, rate, wind, salt) {
@@ -58,9 +57,10 @@ function leafFallFrame(l, i, ys, spd, wind) {
     flip: Math.cos(w * 1.1 * age + h(8) * 6.283), al: Math.min(1, (life - age) / (life * PT_OUT)) };
 }
 const LF_LIFE = [5, 8], LF_FALL = [14, 24], LF_TAU = 1, LF_SWAY = [10, 24];
-function drawPetals(x, ops, a, prog, wp, isL2, copies, F) {
-  if (F && F.ys != null && !FX_PLAIN && x.setTransform && ops.leafFall && a > 0.003) drawLeafFall(x, ops, a, wp, copies, F);
-  if (!F || F.pt == null || FX_PLAIN || !x.setTransform || !ops.petals || a <= 0.003 || !PETAL_MODES.includes(isL2 ? S.layer.mode : S.mode)) return;
+// plain: an export that leaves out the overlay effects (cut, strokes SVG)
+function drawPetals(x, ops, a, prog, wp, isL2, copies, F, plain = false) {
+  if (F && F.ys != null && !plain && x.setTransform && ops.leafFall && a > 0.003) drawLeafFall(x, ops, a, wp, copies, F);
+  if (!F || F.pt == null || plain || !x.setTransform || !ops.petals || a <= 0.003 || !PETAL_MODES.includes(isL2 ? S.layer.mode : S.mode)) return;
   const rate = ANIM.opts.ptRate ?? 1;
   const A = prog < 1 ? (F.np ? animTimesNode(ops) : animTimes(ops)) : null;
   const T = x.getTransform(), s = Math.sqrt(Math.abs(T.a * T.d - T.b * T.c)) || 1;
@@ -731,7 +731,6 @@ function blinkAmt(t, id) {
 // A lid over one nucleus: the nucleus (inside its outline) is covered except
 // for an eye-shaped opening between two half-ellipses; shut, the upper lid
 // bows down past the middle (a closed eye) and meets the lower one
-let GAZE_BASE = null;   // the design-page transform of the frame being drawn (set by renderDesign)
 // e: the eye from markEye. k: how shut (0 open … 1 shut). a: alpha.
 // look: gaze point in the eye's own coordinates, or null (no pupil move).
 // axis: seam eyes only, the edge their pupil slides along. erase: wipe what

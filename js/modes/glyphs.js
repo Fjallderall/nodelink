@@ -1,6 +1,6 @@
 // ── GLYPH HELPERS: swastika guard, symbol swap (Arcane, Chaosgate) ──────────
-// Used by: Arcane, Pillar symbols and Chaosgate. animTick sets GLYPH_T,
-// GLYPH_P and CHAOS_BASE while recording live frames.
+// Used by: Arcane, Pillar symbols and Chaosgate. While recording live frames
+// animRecord passes glyphT, glyphP and chaosBase in the recorder's live inputs.
 
 // Swastika guard.
 // Glyphs are drawn on an integer grid, so they can be checked before drawing.
@@ -34,21 +34,17 @@ function glyphPinwheel(segs) {
 }
 
 // While playing (Drift, Flow or Glitch) each symbol swaps for a newly
-// generated one every GLYPH_P seconds, at its own moment, crossfading over
-// GLYPH_FADE of the period. GLYPH_T is the animation time while recording a
-// live frame, else null (stills and exports draw the seed's own glyphs).
-// GLYPH_P comes from the "Symbol swap" setting (0 = off, GLYPH_T stays null).
-let GLYPH_T = null;
-// The real node positions while a drifting frame is recorded: pillar layout is
-// placed from these (so it doesn't reshuffle) and then moved with the nodes
-let CHAOS_BASE = null;
-let GLYPH_P = 3.5;
+// generated one every glyphP seconds, at its own moment, crossfading over
+// GLYPH_FADE of the period. glyphT (liveOf(c)) is the animation time while
+// recording a live frame, else null (stills and exports draw the seed's own
+// glyphs). glyphP comes from the "Symbol swap" setting (0 = off, glyphT null).
 const GLYPH_FADE = 0.18;
-// Draws a glyph through draw(seed), swapping and crossfading by GLYPH_T.
+// Draws a glyph through draw(seed), swapping and crossfading by glyphT.
 // Swap 0 is the seed's own glyph (seed === base).
 function glyphCycle(c, base, draw) {
-  if (GLYPH_T === null) { draw(base); return; }
-  const e = GLYPH_T / GLYPH_P + sr(base * 0.37 + 11), ep = Math.floor(e), f = e - ep;
+  const { glyphT, glyphP } = liveOf(c);
+  if (glyphT === null) { draw(base); return; }
+  const e = glyphT / glyphP + sr(base * 0.37 + 11), ep = Math.floor(e), f = e - ep;
   const sd = n => n ? base + n * 104729 : base;
   if (f >= GLYPH_FADE) { draw(sd(ep)); return; }
   const a0 = c.globalAlpha ?? 1, u = f / GLYPH_FADE;

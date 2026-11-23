@@ -137,6 +137,27 @@ canvas { display: block; }
 .xf-pos { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
 .xf-row { display: flex; gap: 6px; }
 .xf-row button { flex: 1; }
+/* First visit: empty canvas, "Hit Randomise" and an arrow to the button */
+#empty-start { display: none; position: absolute; inset: 0; z-index: 30; background: var(--bg); align-items: center; justify-content: center; }
+body.empty-start #empty-start { display: flex; }
+#empty-hint { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 26px; text-align: center;
+  border: 1px solid var(--sepia); border-radius: 10px; background: var(--ink); }
+#empty-hint b { font-size: 1.35rem; font-weight: 600; color: var(--gold); }
+#empty-hint span { font-size: 0.82rem; color: var(--muted); }
+#empty-arrow { display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 45; pointer-events: none; }
+body.empty-start #empty-arrow { display: block; }
+#empty-arrow path { fill: none; stroke: var(--guide); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+body.empty-start #tb-randomize { box-shadow: inset 0 0 0 2px var(--guide); animation: nudge 1.6s ease-in-out infinite; }
+@keyframes nudge { 50% { background: rgba(90, 169, 255, 0.18); } }
+@media (prefers-reduced-motion: reduce) { body.empty-start #tb-randomize { animation: none; } }
+body.empty-start .hint, body.empty-start .zoom-ctrl { display: none; }
+/* Help: tips beside the pointer while the ? button is on */
+#help-tip { position: fixed; z-index: 300; max-width: 280px; padding: 7px 10px; border-radius: var(--r); pointer-events: none;
+  background: var(--raise); border: 1px solid var(--gold-dim); color: var(--bone); font-size: 0.78rem; line-height: 1.45; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
+#help-bar { display: none; position: absolute; bottom: 60px; right: 16px; z-index: 41; padding: 5px 10px; border-radius: var(--r);
+  background: var(--ink); border: 1px solid var(--guide); color: var(--bone); font-size: 0.74rem; pointer-events: none; }
+body.help-on #help-bar { display: block; }
+body.help-on [data-help] { cursor: help; }
 .hint { position: absolute; bottom: 22px; left: 16px; font-size: 0.7rem; color: var(--muted); opacity: 0.8; pointer-events: none; }
 
 .row { display: flex; gap: 6px; align-items: center; }

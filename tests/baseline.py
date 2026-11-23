@@ -40,7 +40,7 @@ async () => {
   for (const [k, mut] of [['pcb', d => {}], ['pcbsilk', d => { d.pcb = {pour:100, meander:true, silk:true}; d.boundary.shape = 'circle'; }], ['pcb+pcb', d => { d.layer = { mode: 'pcb', density: 7, weight: 0.6, strength: 60 }; }]]) {
     const d = base(); d.mode = 'pcb'; mut(d); applyDesign(d); draw();
     const L = exportLayout(exportPx()); const svg = new C2S(L.W, L.H, L.cmW * 10, L.cmH * 10);
-    FX_PLAIN = true; try { renderTo(svg, L.W, L.H, L.view, { map: makeColorMap(S.palette) }); } finally { FX_PLAIN = false; }
+    renderTo(svg, L.W, L.H, L.view, { map: makeColorMap(S.palette), plain: true });
     res['svg/' + k] = md5(svg.getSvg());
   }
   return res;

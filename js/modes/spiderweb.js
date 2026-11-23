@@ -2,8 +2,8 @@
 // Nodes are the anchor points. Low jitter: a classic orb web (frame, radials,
 // spiral). High jitter: the orb tears and gives way to an irregular sheet /
 // tangle web with hanging strands. Threads sag slightly under the dew.
-// Used by: RENDERERS. Reads DEW_T (set by animTick) for rolling dew.
-let DEW_T = null;                  // spiderweb: animation time while recording live frames, else null
+// Used by: RENDERERS. Reads liveOf(c).dewT (animation time while recording
+// live frames, else null) for rolling dew.
 
 function renderSpiderweb(c, nodes, density, sigma, weight, seed) {
     let s = seed * 3571;
@@ -201,10 +201,10 @@ function renderSpiderweb(c, nodes, density, sigma, weight, seed) {
     const dew = S.dew / 100;
     const gapBase = 46 - dew * 36;
     const big = [], small = [], falling = [];
-    // Live animation (never in exports): DEW_T is the animation time. Each
+    // Live animation (never in exports): dewT is the animation time. Each
     // drop rolls (accelerating) to its thread's lowest point, stretches and
     // drips off, and a new one forms where it started.
-    const T = typeof DEW_T === 'number' ? DEW_T : null;
+    const T = liveOf(c).dewT;
     threads.forEach(t => {
         if (!t[7]) return;
         const len = Math.hypot(t[4] - t[0], t[5] - t[1]) + Math.abs(t[3] - (t[1] + t[5]) / 2);

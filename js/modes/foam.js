@@ -66,8 +66,6 @@ function renderFoam(ctx, nodes, density, sigma, weight, seed) {
     ctx.lineWidth = weight * 0.5;
     ctx.globalAlpha = 0.8;
     ctx.beginPath();
-    JAG_BATCH = true;
-    try {
     for (let i = 0; i < bubbles.length; i++) {
         for (let j = i + 1; j < bubbles.length; j++) {
             let b1 = bubbles[i];
@@ -82,14 +80,13 @@ function renderFoam(ctx, nodes, density, sigma, weight, seed) {
                 let p2x = b2.x + Math.cos(a2) * b2.r;
                 let p2y = b2.y + Math.sin(a2) * b2.r;
 
-                drawJaggedThread(ctx, p1x, p1y, p2x, p2y, 2, s + i + j, angleVal);
+                jaggedPath(ctx, p1x, p1y, p2x, p2y, 2, s + i + j, angleVal);
                 if (sr(s + i + j) < 0.3) {
-                    drawJaggedThread(ctx, p1x, p1y, p2x, p2y, 3, s + i + j + 1, angleVal);
+                    jaggedPath(ctx, p1x, p1y, p2x, p2y, 3, s + i + j + 1, angleVal);
                 }
             }
         }
     }
-    } finally { JAG_BATCH = false; }
     ctx.stroke();
 
     for (let a = 0; a < sortedNodes.length; a++) {
@@ -205,14 +202,16 @@ function drawDeformedBubble(ctx, cx, cy, r, seedOff, angleVal) {
 // One path per thread: the zig-zag points in order from (x1, y1) to (x2, y2).
 // (Each leaf segment used to be its own path: foam at density 7 recorded
 // ~41k strokes, replayed per symmetry copy every animation frame.)
-// JAG_BATCH: the caller holds one open path and strokes it once (foam's
-// bubble-to-bubble threads: thousands of them share one style)
-let JAG_BATCH = false;
+// jaggedPath adds the thread to the caller's open path, which strokes it once
+// (foam's bubble-to-bubble threads: thousands of them share one style)
 function drawJaggedThread(ctx, x1, y1, x2, y2, depth, seedOff, angleVal) {
-    if (!JAG_BATCH) ctx.beginPath();
+    ctx.beginPath();
+    jaggedPath(ctx, x1, y1, x2, y2, depth, seedOff, angleVal);
+    ctx.stroke();
+}
+function jaggedPath(ctx, x1, y1, x2, y2, depth, seedOff, angleVal) {
     ctx.moveTo(x1, y1);
     jaggedTo(ctx, x1, y1, x2, y2, depth, seedOff, angleVal);
-    if (!JAG_BATCH) ctx.stroke();
 }
 function jaggedTo(ctx, x1, y1, x2, y2, depth, seedOff, angleVal) {
     let s = seedOff;

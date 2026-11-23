@@ -365,7 +365,9 @@
   <div id="canvas-container">
     <canvas id="main-canvas"></canvas>
     <div id="node-layer" class="node-overlay"></div>
+    <div id="empty-start"><div id="empty-hint"><b>Hit Randomise</b><span>for a first design, then make it your own</span></div></div>
   </div>
+  <svg id="empty-arrow" aria-hidden="true"><path d=""/></svg>
 
   <div class="anim-panel hidden" id="anim-panel" aria-label="Animation">
     <div class="sheet-head"><span>Animation</span><button class="sheet-min" id="an-min" aria-expanded="true" title="Fold the animation settings away">▾</button></div>
@@ -512,7 +514,10 @@
     <button class="zbtn" id="btn-zo" title="Zoom out">−</button>
     <button class="zbtn" id="btn-zr" title="Fit view">⟲</button>
     <button class="zbtn toggle" id="btn-move" aria-pressed="false" title="Move design: dragging the background moves the design, not the view (M)">✥</button>
+    <button class="zbtn toggle" id="help-btn" aria-pressed="false" title="Help: point at anything to see what it does. ? again or Esc to stop (?)">?</button>
   </div>
+  <div id="help-tip" role="tooltip" hidden></div>
+  <div id="help-bar">Help is on: point at anything · <b>?</b> or Esc to stop</div>
   <div id="status" role="status" aria-live="polite"></div>
 
   <!-- ── ABOUT ── -->
@@ -610,5 +615,6 @@
 <script src="js/animation.js"></script>
 <script src="js/design-io.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/help.js"></script>
 </body>
 </html>

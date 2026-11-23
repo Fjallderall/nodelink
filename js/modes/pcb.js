@@ -7,7 +7,7 @@
 // clearance knockouts and stitching vias → optional silkscreen.
 // Everything shares one occupancy grid, so nothing overlaps.
 // Distance from (x, y) to segment ab
-// Used by: RENDERERS. As Layer 2 over a PCB main it routes round PCB_OBST
+// Used by: RENDERERS. As Layer 2 over a PCB main it routes round liveOf(c).obst
 // (set by recordDL from renderPCB.lastObst).
 function obSegDist(x, y, a, b) {
   const vx = b.x - a.x, vy = b.y - a.y, l2 = vx * vx + vy * vy;
@@ -20,7 +20,7 @@ function obSegDist(x, y, a, b) {
 // split and all draw from pb.R in turn, so a seed gives the same board.
 // pcbRouteNetwork has its own stream (seed × 4507), as before.
 function renderPCB(c, nodes, density, sigma, weight, seed) {
-  const pb = pcbBoard(nodes, density, sigma, weight, seed);
+  const pb = pcbBoard(nodes, density, sigma, weight, seed, liveOf(c).obst);
   pcbZones(pb);
   pcbBlockMain(pb);
   renderPCB.lastLinks = pcbRouteNetwork(pb, seed);
@@ -41,12 +41,12 @@ const PCB_COLS = { COL_TRACE: '#22d0ff', COL_PAD: '#a1f0ff', COL_POUR: '#1a8fb8'
 
 // PCB board: settings, spawn area, the occupancy grid and its helpers, and
 // the empty geometry lists. R is the board's main random stream.
-function pcbBoard(nodes, density, sigma, weight, seed) {
+// OB: the main board's copper when this is a second PCB layer, else null
+function pcbBoard(nodes, density, sigma, weight, seed, OB) {
   let s = seed * 7331;
   const R = () => sr(s++);
   const J = sigma / 100;
   const P = S.pcb || { pour: 40, meander: true, silk: false };
-  const OB = PCB_OBST;                 // main board's copper when this is a second PCB layer
   const traceW = Math.max(0.1, weight * 1.5);
   let cell = Math.max(1, traceW * 3.5);
   const viaR = traceW * 1.6;

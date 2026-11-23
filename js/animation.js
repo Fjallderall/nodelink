@@ -107,7 +107,7 @@ function nodeDrawStep(n, ct) {
 }
 // Keyframe crossfade: old 1 − e, new e (straight sum). Measured on PCB/foam
 // Flow: a 1.6 overlap made the brightness pulse ~11× more than this.
-let XF_K = 1;
+const XF_K = 1;
 // Modes whose layout jumps when a node moves a little (PCB re-routes, foam
 // re-packs): drift doesn't redraw every frame for these, it takes a new
 // keyframe every DRIFT_KEY seconds and crossfades to it over DRIFT_XFADE
@@ -174,16 +174,16 @@ function animRecord(nodes, seed, t = null) {
   S.nodes = nodes; S.seed = seed;
   // A Layer 2 with its own seed moves on by the same step (morph)
   if (keep[2] !== undefined) S.layer.seed = (keep[2] + (seed - keep[1] + 1000000) % 1000000) % 1000000;
-  DEW_T = t;
-  const o = ANIM.opts;
-  BLOOM_T = ANIM.playing && o.bloom ? ANIM.time : null;
-  SEASON_T = ANIM.playing && o.seasons ? ANIM.ssTime / SEASON_S : null;
+  const o = ANIM.opts, moving = ANIM.playing && (o.drift || o.flow || o.glitch);
+  const live = {
+    ...REC_STILL, dewT: t,
+    bloomT: ANIM.playing && o.bloom ? ANIM.time : null,
+    seasonT: ANIM.playing && o.seasons ? ANIM.ssTime / SEASON_S : null,
+    glyphP: o.glyphP, glyphT: moving && o.glyphP > 0 ? ANIM.time : null,
+    chaosBase: moving && nodes !== keep[0] ? keep[0] : null
+  };
   const r0 = performance.now();
-  const live = ANIM.playing && (o.drift || o.flow || o.glitch);
-  GLYPH_P = o.glyphP;
-  GLYPH_T = live && o.glyphP > 0 ? ANIM.time : null;
-  CHAOS_BASE = live && nodes !== keep[0] ? keep[0] : null;
-  try { return recordDL(); } finally {
+  try { return recordDL(live); } finally {
     // Smoothed recording cost for the current mode (both layers)
     const rm = performance.now() - r0, mk = S.mode + '|' + (S.layer && S.layer.mode);
     // (the first recording includes warm-up, so it counts for less)
@@ -193,7 +193,7 @@ function animRecord(nodes, seed, t = null) {
     const e = ANIM.recEMA;
     ANIM.slow = e > REC_SLOW || (ANIM.slow && e > REC_SLOW * 0.6);
     ANIM.heavy = e > REC_HEAVY || (ANIM.heavy && e > REC_HEAVY * 0.6);
-    [S.nodes, S.seed] = keep; if (keep[2] !== undefined) S.layer.seed = keep[2]; DEW_T = null; BLOOM_T = null; SEASON_T = null; GLYPH_T = null; CHAOS_BASE = null; }
+    [S.nodes, S.seed] = keep; if (keep[2] !== undefined) S.layer.seed = keep[2]; }
 }
 
 // One animation frame (requestAnimationFrame; now in ms): moves the nodes,
