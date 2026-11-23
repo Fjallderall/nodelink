@@ -11,6 +11,7 @@ A node-based pattern generator that runs in the browser. Place up to nine nodes,
   - PNG with transparency, at a chosen size and DPI (for Procreate and print)
   - strokes SVG (editable vector)
   - cut SVG for Cricut / Silhouette vinyl, iron-on, paint stencils and laser cutting, with minimum line width, gap and piece size per material
+  - loop video (MP4, 5–60 s, Full HD, 4K or the screen's size) that plays on repeat without a visible seam, for a TV, projector or VJ software
 - **Library**: save and load designs as `.json`, favourites, undo / redo.
 
 Everything runs in the browser; nothing is uploaded.
@@ -27,7 +28,7 @@ Open `index.html` in a browser (double-click works). No build step, no dependenc
   - `core.js`, `svg-builder.js`: state, layers, RNG, geometry, the SVG builder
   - `modes/`: one file per generator mode
   - `display-list.js`, `compose.js`, `anim-effects.js`, `palette.js`: recording, symmetry and composition, animation effects, colour schemes
-  - `render-export.js`, `animation.js`, `design-io.js`, `ui.js`, `help.js`: rendering and exports, the animation loop, history and favourites, the interface, the first-visit screen and help mode
+  - `render-export.js`, `animation.js`, `loop-video.js`, `design-io.js`, `ui.js`, `help.js`: rendering and exports, the animation loop, the loop video export, history and favourites, the interface, the first-visit screen and help mode
 
 The developer overview at the top of `js/core.js` explains how a picture is made. Tests are in `tests/`.
 

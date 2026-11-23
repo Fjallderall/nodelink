@@ -587,6 +587,11 @@ function syncExportControls() {
   document.getElementById('ex-mingap').value = E.minGapMm;
   document.getElementById('ex-minpiece').value = E.minPiece;
   document.getElementById('ex-cutstyle').value = E.cutStyle;
+  const lv = loopSettings();
+  document.getElementById('ex-loop-s').value = lv.secs;
+  document.getElementById('v-loop-s').textContent = lv.secs;
+  document.getElementById('ex-loop-fps').value = lv.fps;
+  document.getElementById('ex-loop-size').value = lv.size;
   const pid = cutPresetId();
   document.getElementById('ex-cutpreset').value = pid;
   document.getElementById('ex-cut-sum').textContent = (pid === 'custom' ? 'Custom' : CUT_PRESETS[pid].label) +
@@ -602,15 +607,19 @@ function updateExportReadout() {
   // A page dictates the frame and size, so those controls go away
   // and the readout says what wins
   const fixed = pageActive();
-  $('ex-size-ctrls').classList.toggle('hidden', pageActive());
+  $('ex-size-ctrls').classList.toggle('hidden', pageActive() || fmt === 'video');
   $('ex-cm').closest('.cg').classList.toggle('hidden', fixed);
   document.querySelectorAll('#ex-format button').forEach(b => b.setAttribute('aria-selected', b.dataset.fmt === fmt));
   document.querySelectorAll('.drawer .fmt').forEach(el => { el.hidden = el.dataset.fmt !== fmt; });
-  $('btn-export-go').textContent = { png: 'Export PNG', cut: 'Export cut SVG', svg: 'Export stroke SVG' }[fmt];
+  $('btn-export-go').textContent = { png: 'Export PNG', cut: 'Export cut SVG', svg: 'Export stroke SVG', video: 'Render loop video' }[fmt];
 
   const cm = exportCm();
   const parts = [];
-  if (pageActive()) { const m = pageMm(); parts.push(`Page: ${+m.w.toFixed(1)} × ${+m.h.toFixed(1)} mm` + (m.bleed ? ` + ${m.bleed} mm bleed` : '')); }
+  if (fmt === 'video') {
+    const lv = loopSettings(), [w, h] = loopSize(lv.size);
+    $('ex-loop-screen').textContent = `This screen (${loopScreenSize().join(' × ')})`;
+    parts.push(`${w} × ${h} px`, `${lv.secs} s`, `${lv.secs * lv.fps} frames`, 'MP4');
+  } else if (pageActive()) { const m = pageMm(); parts.push(`Page: ${+m.w.toFixed(1)} × ${+m.h.toFixed(1)} mm` + (m.bleed ? ` + ${m.bleed} mm bleed` : '')); }
   else if (fmt === 'png') parts.push(`${+cm.toFixed(1)} cm`);
   if (fmt === 'png') {
     const px = exportPx();
@@ -623,7 +632,9 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 27b (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 28 (24-11-2026)';   // shown in About; update with every published phase
+// About or the loop video's progress is open: no shortcuts
+function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
   document.querySelectorAll('.tabs .tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name));
   document.querySelectorAll('aside .panel').forEach(p => { p.hidden = p.dataset.panel !== name; });
@@ -693,7 +704,13 @@ function setupShell() {
   $('tb-export').addEventListener('click', () => setDrawer($('export-drawer').hidden));
   $('ex-close').addEventListener('click', () => setDrawer(false));
   document.querySelectorAll('#ex-format button').forEach(b => b.addEventListener('click', () => { E.fmt = b.dataset.fmt; syncExportControls(); }));
-  $('btn-export-go').addEventListener('click', () => ({ png: exportPNG, cut: exportCutSVG, svg: exportStrokeSVG })[E.fmt]());
+  $('btn-export-go').addEventListener('click', () => ({ png: exportPNG, cut: exportCutSVG, svg: exportStrokeSVG, video: exportLoopVideo })[E.fmt]());
+  $('ex-loop-s').addEventListener('input', e => { E.loopS = parseInt(e.target.value, 10); syncExportControls(); });
+  $('ex-loop-fps').addEventListener('change', e => { E.loopFps = parseInt(e.target.value, 10); syncExportControls(); });
+  $('ex-loop-size').addEventListener('change', e => { E.loopSize = e.target.value; syncExportControls(); });
+  // Esc or Cancel stops a render (the dialog stays until it has wound down)
+  $('loop-cancel').addEventListener('click', () => { LOOP.cancel = true; });
+  $('loop-dlg').addEventListener('cancel', e => { e.preventDefault(); LOOP.cancel = true; });
   ['palette', 'layer-mode'].forEach(id => $(id).addEventListener('change', syncSummaries));
 
   // Single-key shortcuts, ignored while typing
@@ -701,7 +718,7 @@ function setupShell() {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target, tag = (t.tagName || '').toLowerCase();
     if (tag === 'textarea' || tag === 'select' || (tag === 'input' && !['checkbox', 'range', 'radio'].includes(t.type))) return;
-    if (document.getElementById('about').open) return;
+    if (modalOpen()) return;
     const k = e.key.toLowerCase();
     if (k === '?') { e.preventDefault(); setHelp(!HELP.on); return; }
     if (k === 'escape' && HELP.on) { setHelp(false); return; }
@@ -952,7 +969,7 @@ function bindHistoryControls() {
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' && (e.target.type === 'text' || e.target.type === 'number')) return;
     if (!(e.ctrlKey || e.metaKey)) return;
-    if (document.getElementById('about').open) return;
+    if (modalOpen()) return;
     const k = e.key.toLowerCase();
     if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
     else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }

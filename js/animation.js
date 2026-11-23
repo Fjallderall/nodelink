@@ -33,7 +33,11 @@ const ANIM = {
   , recEMA: 0, recMode: '',   // how long a recording takes (ms, smoothed) for the current mode
   res: 1, frameEMA: 0, resAt: 0, resTry: null, resFloor: 0  // render scale while playing, smoothed real frame interval; last drop being judged; lowest scale that still helped
   , drawHeavy: false, warpSlow: 0, warpWarm: 0  // bent (warp) frames take too long to draw: drift uses keyframes
+  , clock: null, hueFilter: '', hueK: 1   // fixed time (ms) while a loop video renders (animNow); Colour cycle's CSS filter for this frame and its rate factor (loop video)
 };
+// The animation's own clock: real time, or the frame time while a loop video
+// renders, so every measured cost is 0 there and no slow-device fallback starts
+function animNow() { return ANIM.clock != null ? ANIM.clock : performance.now(); }
 // Drift on a jumpy mode bends every recording point by point, per symmetry
 // copy, every frame. A dense design (foam at density 7, 8-fold mirrored = 16
 // copies) took ~250 ms+ per frame that way, while recording it took ~35 ms, so
@@ -183,10 +187,10 @@ function animRecord(nodes, seed, t = null) {
     glyphP: o.glyphP, glyphT: moving && o.glyphP > 0 ? ANIM.time : null,
     chaosBase: moving && nodes !== keep[0] ? keep[0] : null
   };
-  const r0 = performance.now();
+  const r0 = animNow();
   try { return recordDL(live); } finally {
     // Smoothed recording cost for the current mode (both layers)
-    const rm = performance.now() - r0, mk = S.mode + '|' + (S.layer && S.layer.mode);
+    const rm = animNow() - r0, mk = S.mode + '|' + (S.layer && S.layer.mode);
     // (the first recording includes warm-up, so it counts for less)
     if (ANIM.recMode !== mk) { ANIM.recMode = mk; ANIM.recEMA = Math.min(rm, REC_HEAVY / 2); ANIM.drawHeavy = false; ANIM.warpSlow = 0; }
     else ANIM.recEMA = ANIM.recEMA * 0.7 + rm * 0.3;
@@ -197,15 +201,12 @@ function animRecord(nodes, seed, t = null) {
     [S.nodes, S.seed] = keep; if (keep[2] !== undefined) S.layer.seed = keep[2]; }
 }
 
-// One animation frame (requestAnimationFrame; now in ms): moves the nodes,
-// re-records what changed and builds ANIM.frame, then draws.
+// One animation frame (requestAnimationFrame; now in ms): measures the
+// device, steps the animation (animStep), then draws.
 function animTick(now) {
   ANIM.raf = 0;
   if (!ANIM.playing) return;
-  const o = ANIM.opts;
   const gap = now - (ANIM.last || now);
-  const dt = Math.min(DT_MAX, gap / 1000) * o.speed;
-  ANIM.last = now;
   adaptRes(gap, now);
   countFps(now);
   // Cost of a design-change re-record: the slower of the two frame gaps after
@@ -219,6 +220,32 @@ function animTick(now) {
       ANIM.keyMs = ANIM.keyMs ? ANIM.keyMs * 0.6 + cost * 0.4 : cost;
     }
   }
+  const { warp, windOn, br } = animStep(now);
+  canvas.style.filter = ANIM.hueFilter;
+  itemCacheFrame();
+  const d0 = performance.now();
+  draw();
+  if (ANIM.warpWarm > 0) ANIM.warpWarm--;        // the first frames of a run are slow anyway (cold caches)
+  else if (warp || windOn || br != null) {
+    const dm = performance.now() - d0;
+    ANIM.warpSlow = dm > WARP_DRAW_MAX ? ANIM.warpSlow + (dm > WARP_DRAW_MAX * 2 ? 2 : 1) : 0;
+    // Switch, and record afresh at the current drift position (the bent
+    // recording would otherwise snap back to where it was recorded)
+    if (ANIM.warpSlow >= 2) { ANIM.drawHeavy = true; ANIM.trail = []; ANIM.curKey = ''; }
+  }
+  if (!ANIM.ambient) renderNodeDOM(ANIM.hpos);
+  ANIM.raf = requestAnimationFrame(animTick);
+}
+
+// The animation itself, one frame at time now (ms): moves the clocks and the
+// nodes, re-records what changed and builds ANIM.frame and ANIM.hueFilter.
+// Draws nothing, so the loop video (js/loop-video.js) steps it on its own
+// fixed clock. Returns what animTick needs to judge the draw cost.
+function animStep(now) {
+  const o = ANIM.opts;
+  const gap = now - (ANIM.last || now);
+  const dt = Math.min(DT_MAX, gap / 1000) * o.speed;
+  ANIM.last = now;
   const t = (ANIM.time += dt);
   ANIM.dewTime += dt * o.dewSpd;
   ANIM.twTime += dt * o.twRate;
@@ -300,11 +327,11 @@ function animTick(now) {
   } else if (warp && !driftBendOnly() && now - ANIM.recAt > driftRecGap()) {
     ANIM.trail.push({ dl: ANIM.cur, base: ANIM.curBase, at: now });
     ANIM.curBase = animNodes(t);
-    const r0 = performance.now();
+    const r0 = animNow();
     ANIM.cur = animRecord(ANIM.curBase, seed, dewT);
-    const rm = performance.now() - r0;
+    const rm = animNow() - r0;
     ANIM.recMs = ANIM.recMs ? ANIM.recMs * 0.7 + rm * 0.3 : rm;
-    ANIM.recAt = performance.now();
+    ANIM.recAt = animNow();
   } else if ((o.glitch || ((o.drift || o.flow) && !jumpy) || dewT !== null || bloomLive) && now - ANIM.recAt > Math.max(LIVE_REC_MIN, ANIM.recEMA * LIVE_REC_K) &&
              !(flowKF && t - ANIM.keyAt > FLOW_KEY)) {
     // (a bent-only drift re-records at its base: the warp moves it)
@@ -382,22 +409,10 @@ function animTick(now) {
   const ys = o.seasons && (S.mode === 'vine' || S.layer.mode === 'vine') ? ANIM.ssTime / SEASON_S : null;
   ANIM.frame = { items, lw: o.pulse ? 1 + PULSE_WIDTH * pulse : 1, spin: o.spin ? ANIM.spTime * SPIN_RATE : 0, np, rt, ct, tt, st, sk, lt, su, br, brA, pt, ptWind: windOn, ys };
   // sepia first so white lines take a colour too; then the hue turns
-  canvas.style.filter = o.hue ? `sepia(0.8) saturate(3.5) hue-rotate(${(t * HUE_RATE) % 360}deg)` : '';
+  ANIM.hueFilter = o.hue ? `sepia(0.8) saturate(3.5) hue-rotate(${(t * HUE_RATE * ANIM.hueK) % 360}deg)` : '';
   // Handles and markers follow the drifting nodes (spin is left out, as before)
   ANIM.hpos = (o.drift || o.flow || o.glitch) ? animNodes(t) : null;
-  itemCacheFrame();
-  const d0 = performance.now();
-  draw();
-  if (ANIM.warpWarm > 0) ANIM.warpWarm--;        // the first frames of a run are slow anyway (cold caches)
-  else if (warp || windOn || br != null) {
-    const dm = performance.now() - d0;
-    ANIM.warpSlow = dm > WARP_DRAW_MAX ? ANIM.warpSlow + (dm > WARP_DRAW_MAX * 2 ? 2 : 1) : 0;
-    // Switch, and record afresh at the current drift position (the bent
-    // recording would otherwise snap back to where it was recorded)
-    if (ANIM.warpSlow >= 2) { ANIM.drawHeavy = true; ANIM.trail = []; ANIM.curKey = ''; }
-  }
-  if (!ANIM.ambient) renderNodeDOM(ANIM.hpos);
-  ANIM.raf = requestAnimationFrame(animTick);
+  return { warp, windOn, br };
 }
 
 // Frame rate: frames counted over ~1 s windows. Two windows in a row under
@@ -497,6 +512,16 @@ function dropFrozen() {
   clearAnimFrame();
   syncAnimButton();
 }
+// A run from the start (Play after Stop, or a loop video)
+function animFresh() {
+  ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (ANIM.opts.draw ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
+  ANIM.curKey = ''; ANIM.prev = null;
+  ANIM.drawHeavy = false; ANIM.warpSlow = 0;    // measured again for this run
+  ANIM.brAmp = 0;                               // Breathing fades in from the still
+  ANIM.tipsOff = false;
+  ANIM.resFloor = 0; ANIM.resTry = null;        // whether lowering the resolution helps: judged afresh
+  ANIM.ssTime = 0;                              // Seasons start from the design's own season
+}
 function setPlaying(on, freeze = true) {
   // Resume where it paused, when the design is still the one it paused on
   const resume = on && ANIM.frozen && ANIM.frame && dlKey() === ANIM.frozenKey;
@@ -515,15 +540,7 @@ function setPlaying(on, freeze = true) {
     document.getElementById('an-tips').classList.add('hidden');
     ANIM.resAt = performance.now();               // let the frame average settle (≥ 1 s) before changing resolution
     ANIM.warpWarm = WARP_WARM;                    // and don't judge the bent frames by the first few
-    if (!resume) {
-      ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (ANIM.opts.draw ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
-      ANIM.curKey = ''; ANIM.prev = null;
-      ANIM.drawHeavy = false; ANIM.warpSlow = 0;    // measured again for this run
-      ANIM.brAmp = 0;                               // Breathing fades in from the still
-      ANIM.tipsOff = false;
-      ANIM.resFloor = 0; ANIM.resTry = null;        // whether lowering the resolution helps: judged afresh
-      ANIM.ssTime = 0;                              // Seasons start from the design's own season
-    }
+    if (!resume) animFresh();
     if (ANIM.res !== 1) layoutCanvas();
     if (!ANIM.raf) ANIM.raf = requestAnimationFrame(animTick);
   } else {

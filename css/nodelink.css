@@ -52,6 +52,12 @@ h1 .about-btn:hover { color: var(--gold); background: var(--raise); }
 #about .about-foot { margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--sepia); font-size: 0.74rem; color: var(--muted); line-height: 1.6; }
 #about .close { width: 28px; height: 28px; margin: 0; padding: 0; flex: none; font-size: 1rem; background: transparent; border-color: transparent; color: var(--muted); }
 #about .close:hover { background: var(--raise); color: var(--gold); }
+/* Loop video progress (modal while rendering) */
+#loop-dlg { margin: auto; width: min(380px, calc(100vw - 24px)); padding: 16px 18px 14px;
+  background: rgba(23, 24, 26, 0.98); color: var(--bone); border: 1px solid var(--sepia); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+#loop-dlg::backdrop { background: rgba(0, 0, 0, 0.55); }
+#loop-dlg progress { width: 100%; height: 10px; accent-color: var(--gold); }
+#loop-dlg .loop-msg { margin: 8px 0 12px; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.2em; }
 .sec { font-size: 0.72rem; font-weight: 600; color: var(--muted); margin: 16px 0 8px; }
 .cg { margin-bottom: 12px; }
 label { display: block; font-size: 0.75rem; margin-bottom: 4px; color: var(--muted); }

@@ -27,6 +27,8 @@
    render-export.js   RENDERING · FRAMING · COLOUR TO ALPHA · PNG DPI ·
                       CUT-OUTLINE TRACER · EXPORTS (+ Cut worker) · CUT PREVIEW
    animation.js       ANIMATION · Ambient (+ scenes)
+   loop-video.js      LOOP VIDEO (Export → Video: fixed-clock render, seam
+                      crossfade, WebCodecs encoder, MP4 file)
    design-io.js       STATUS · DESIGN SNAPSHOTS, HISTORY, AUTOSAVE · FAVOURITES
    ui.js              NODE DOM · UPDATE · UI SYNC (+ Colour scheme UI) ·
                       SHELL · EVENTS · INIT
@@ -49,7 +51,7 @@
                 Blink lids, The whole design) · PALETTE · RENDERING · FRAMING
    Export:      COLOUR TO ALPHA · PNG DPI · CUT-OUTLINE TRACER · EXPORTS
                 (+ Cut worker) · CUT PREVIEW
-   Live:        ANIMATION · Ambient (+ scenes)
+   Live:        ANIMATION · Ambient (+ scenes) · LOOP VIDEO
    App:         STATUS · DESIGN SNAPSHOTS · FAVOURITES · NODE DOM · UPDATE ·
                 UI SYNC (+ Colour scheme UI) · SHELL · EVENTS · INIT
 
@@ -163,6 +165,7 @@ const S = {
 // Export settings (not part of a design / undo history)
 const E = { frame: 'bounds', cm: 10, dpi: 300, transparent: true, minMm: 0.8, minGapMm: 0.5, minPiece: 1,
   cutStyle: 'fill', cutPreset: 'vinyl', fmt: 'png' };
+// (Loop video adds loopS, loopFps and loopSize once changed: loopSettings() gives the defaults)
 
 // Cut presets. kind says what falls apart: for vinyl you weed the holes; for
 // a paint stencil the ink is cut away, so islands inside it fall out; for a

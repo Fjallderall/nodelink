@@ -21,7 +21,7 @@ open('/tmp/lint.js', 'w').write(''.join(out))
 json.dump(cmap, open('/tmp/lint.map', 'w'))
 PY
 cat > /tmp/eslint.config.mjs <<'CFG'
-const browser = { window: "readonly", document: "readonly", localStorage: "readonly", performance: "readonly", setTimeout: "readonly", clearTimeout: "readonly", requestAnimationFrame: "readonly", cancelAnimationFrame: "readonly", console: "readonly", Blob: "readonly", URL: "readonly", Worker: "readonly", DOMPoint: "readonly", DOMMatrix: "readonly", Path2D: "readonly", ResizeObserver: "readonly", matchMedia: "readonly", getComputedStyle: "readonly", postMessage: "readonly", onmessage: "readonly" };
+const browser = { window: "readonly", document: "readonly", localStorage: "readonly", performance: "readonly", setTimeout: "readonly", clearTimeout: "readonly", requestAnimationFrame: "readonly", cancelAnimationFrame: "readonly", console: "readonly", Blob: "readonly", URL: "readonly", Worker: "readonly", DOMPoint: "readonly", DOMMatrix: "readonly", Path2D: "readonly", ResizeObserver: "readonly", matchMedia: "readonly", getComputedStyle: "readonly", postMessage: "readonly", onmessage: "readonly", screen: "readonly", createImageBitmap: "readonly", VideoEncoder: "readonly", VideoFrame: "readonly" };
 export default [{ files: ["lint.js"], languageOptions: { ecmaVersion: 2022, sourceType: "script", globals: browser },
   rules: { "no-unused-vars": "warn", "no-unreachable": "warn", "no-undef": "error", "no-redeclare": "error" } }];
 CFG

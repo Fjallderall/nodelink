@@ -544,6 +544,14 @@
     </div>
   </dialog>
 
+  <!-- ── LOOP VIDEO PROGRESS ── -->
+  <dialog id="loop-dlg" aria-labelledby="loop-title">
+    <div class="drawer-head"><span id="loop-title">Rendering a loop video</span></div>
+    <progress id="loop-bar" max="1" value="0"></progress>
+    <div class="loop-msg" id="loop-msg"></div>
+    <button type="button" id="loop-cancel">Cancel</button>
+  </dialog>
+
   <!-- ── EXPORT DRAWER ── -->
   <div class="drawer" id="export-drawer" hidden>
     <div class="drawer-head">
@@ -554,6 +562,7 @@
       <button data-fmt="png" title="Transparent PNG for Procreate">PNG</button>
       <button data-fmt="cut" title="Traced cut file for vinyl cutters and lasers">Cut file</button>
       <button data-fmt="svg" title="Vector strokes for editing">Strokes</button>
+      <button data-fmt="video" title="The animation as a looping MP4 video for a TV, projector or VJ software">Video</button>
     </div>
 
     <div id="ex-size-ctrls">
@@ -592,6 +601,29 @@
       <div class="note">Editable strokes for Illustrator / Inkscape.</div>
     </div>
 
+    <div class="fmt" data-fmt="video">
+      <div class="cg" title="How long the video is. It plays on repeat with no visible jump: the end fades into the start over the last second">
+        <label for="ex-loop-s">Loop length <span class="val"><span id="v-loop-s">10</span> s</span></label>
+        <input type="range" id="ex-loop-s" min="5" max="60" step="1" value="10">
+      </div>
+      <div class="cg">
+        <label for="ex-loop-fps">Frame rate</label>
+        <select id="ex-loop-fps" title="60 fps moves more smoothly and takes twice as long to render">
+          <option value="30">30 fps</option>
+          <option value="60">60 fps</option>
+        </select>
+      </div>
+      <div class="cg">
+        <label for="ex-loop-size">Size</label>
+        <select id="ex-loop-size" title="The design is shown whole and centred, as on the canvas; the background fills the rest">
+          <option value="1080">1920 × 1080 (Full HD)</option>
+          <option value="2160">3840 × 2160 (4K)</option>
+          <option value="screen" id="ex-loop-screen">This screen</option>
+        </select>
+      </div>
+      <div class="note">Records the animation as set up in the Animate panel, frame by frame, so it can take longer than the video itself. Seasons take 48 s a year at 1×: a shorter loop fades back mid-year.</div>
+    </div>
+
     <button class="primary" id="btn-export-go">Export</button>
   </div>
 </main>
@@ -618,6 +650,7 @@
 <script src="js/palette.js"></script>
 <script src="js/render-export.js"></script>
 <script src="js/animation.js"></script>
+<script src="js/loop-video.js"></script>
 <script src="js/design-io.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/help.js"></script>
