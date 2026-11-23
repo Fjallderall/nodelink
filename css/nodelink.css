@@ -327,15 +327,14 @@ body.ambient.hide-cursor #ambient-exit { opacity: 0; }
 .drawer button.primary { margin-top: 14px; }
 
 .sheet-head { display: none; }
-/* Desktop: the animation panel folds up to its title bar (▴ folds, ▾ opens) */
+/* Desktop: Settings in the Pause / Stop group shows or hides the animation panel.
+   Phones keep the fold in the sheet's own title bar instead. */
 @media (min-width: 769px) and (min-height: 501px) {
-  .anim-panel .sheet-head { display: flex; align-items: center; justify-content: space-between; margin: -6px -6px 6px 0; color: var(--gold); font-weight: 600; font-size: 0.78rem; }
-  .anim-panel .sheet-min { width: 28px; height: 28px; margin: 0; padding: 0; flex: none; background: transparent; border: none; color: var(--muted); font-size: 1rem; transform: rotate(180deg); transition: transform 0.15s; }
-  .anim-panel .sheet-min:hover { background: var(--raise); color: var(--gold); }
-  .anim-panel.min { width: 170px; }
-  .anim-panel.min > :not(.sheet-head) { display: none; }
-  .anim-panel.min .sheet-head { margin-bottom: -6px; }
-  .anim-panel.min .sheet-min { transform: none; }
+  .anim-panel.min { display: none; }
+}
+@media (max-width: 768px), (orientation: landscape) and (max-height: 500px) {
+  #tb-anim-set { display: none; }
+}
 }
 /* Menu folded away: the canvas takes the whole window */
 body.menu-min aside { display: none; }

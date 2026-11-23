@@ -355,6 +355,7 @@
     <div class="tgroup">
       <button class="tbtn toggle" id="tb-anim" title="Play the animation (A)" aria-pressed="false"><span class="ti" aria-hidden="true">▶</span><span class="tl">Animate</span></button>
       <button class="tbtn hidden" id="tb-anim-reset" title="Stop the animation and show the design still again (Shift+A)"><span class="ti" aria-hidden="true">■</span><span class="tl">Stop</span></button>
+      <button class="tbtn toggle hidden" id="tb-anim-set" title="Show or hide the animation settings" aria-pressed="true" aria-controls="anim-panel"><span class="ti" aria-hidden="true">⚙︎</span><span class="tl">Settings</span></button>
     </div>
     <div class="tgroup push">
       <button class="tbtn primary" id="tb-export" title="Export (E)" aria-expanded="false">Export</button>
@@ -367,7 +368,7 @@
   </div>
 
   <div class="anim-panel hidden" id="anim-panel" aria-label="Animation">
-    <div class="sheet-head"><span>Animation</span><button class="sheet-min" id="an-min" aria-expanded="true" title="Fold the animation settings away (click again to open)">▾</button></div>
+    <div class="sheet-head"><span>Animation</span><button class="sheet-min" id="an-min" aria-expanded="true" title="Fold the animation settings away">▾</button></div>
     <p class="an-rec" id="an-rec"></p>
     <p class="an-fps" id="an-fps" aria-live="off"><b id="an-fps-v">–</b> fps</p>
     <div class="an-tips hidden" id="an-tips" role="note">

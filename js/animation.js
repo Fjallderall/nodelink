@@ -502,6 +502,7 @@ function setPlaying(on, freeze = true) {
   ANIM.frozen = false;
   ANIM.playing = on;
   document.getElementById('anim-panel').classList.toggle('hidden', !on || ANIM.ambient);
+  document.getElementById('tb-anim-set').classList.toggle('hidden', !on);
   document.body.classList.toggle('playing', on);
   if (on) {
     if (CUT.on) setCutPreview(false);
@@ -833,10 +834,14 @@ function applyPresetFile(d) {
 
 function setupAnim() {
   const $ = id => document.getElementById(id);
-  $('an-min').addEventListener('click', () => {
+  // Fold / unfold the settings: Settings in the toolbar (desktop) or ▾ in the sheet (phone)
+  const foldPanel = () => {
     const min = $('anim-panel').classList.toggle('min');
     $('an-min').setAttribute('aria-expanded', !min);
-  });
+    $('tb-anim-set').setAttribute('aria-pressed', !min);
+  };
+  $('an-min').addEventListener('click', foldPanel);
+  $('tb-anim-set').addEventListener('click', foldPanel);
   try {
     const ui = JSON.parse(localStorage.getItem(LS_UI) || 'null') || {};
     if (ui.anim) setAnimOpts(ui.anim);
