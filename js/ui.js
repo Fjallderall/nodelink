@@ -596,6 +596,7 @@ function syncExportControls() {
   document.getElementById('v-loop-s').textContent = lv.secs;
   document.getElementById('ex-loop-fps').value = lv.fps;
   document.getElementById('ex-loop-size').value = lv.size;
+  document.getElementById('ex-loop-bg').value = lv.bg;
   const pid = cutPresetId();
   document.getElementById('ex-cutpreset').value = pid;
   document.getElementById('ex-cut-sum').textContent = (pid === 'custom' ? 'Custom' : CUT_PRESETS[pid].label) +
@@ -623,6 +624,7 @@ function updateExportReadout() {
     const lv = loopSettings(), [w, h] = loopSize(lv.size);
     $('ex-loop-screen').textContent = `This screen (${loopScreenSize().join(' × ')})`;
     parts.push(`${w} × ${h} px`, `${lv.secs} s`, `${lv.secs * lv.fps} frames`, 'MP4');
+    $('ex-loop-bg-note').classList.toggle('hidden', !(lv.bg === 'black' && loopBgLight()));
   } else if (pageActive()) { const m = pageMm(); parts.push(`Page: ${+m.w.toFixed(1)} × ${+m.h.toFixed(1)} mm` + (m.bleed ? ` + ${m.bleed} mm bleed` : '')); }
   else if (fmt === 'png') parts.push(`${+cm.toFixed(1)} cm`);
   if (fmt === 'png') {
@@ -636,7 +638,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 28 (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 29 (24-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -712,6 +714,7 @@ function setupShell() {
   $('ex-loop-s').addEventListener('input', e => { E.loopS = parseInt(e.target.value, 10); syncExportControls(); });
   $('ex-loop-fps').addEventListener('change', e => { E.loopFps = parseInt(e.target.value, 10); syncExportControls(); });
   $('ex-loop-size').addEventListener('change', e => { E.loopSize = e.target.value; syncExportControls(); });
+  $('ex-loop-bg').addEventListener('change', e => { E.loopBg = e.target.value; syncExportControls(); });
   // Esc or Cancel stops a render (the dialog stays until it has wound down)
   $('loop-cancel').addEventListener('click', () => { LOOP.cancel = true; });
   $('loop-dlg').addEventListener('cancel', e => { e.preventDefault(); LOOP.cancel = true; });

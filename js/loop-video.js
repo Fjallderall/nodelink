@@ -18,7 +18,8 @@
 //     wall clock), H.264 in MP4 for TVs and VJ software; VP9 in MP4 where the
 //     browser has no H.264 encoder (VLC and browsers play it, TVs may not).
 //     The MP4 file is written by mp4File below (no libraries).
-// Settings live in E (loopS, loopFps, loopSize) with the other export settings.
+// Background: the design's own, or pure black for a projector (loopBlack).
+// Settings live in E (loopS, loopFps, loopSize, loopBg) with the other export settings.
 // Used by: the Export drawer (ui.js).
 const LOOP_XFADE = 1;        // s: crossfade at the seam
 const LOOP_WARM = 3;         // s: the animation runs this long (not drawn) before the first frame
@@ -41,7 +42,8 @@ function loopSettings() {
   return {
     secs: Number.isFinite(s) ? Math.max(LOOP_S_MIN, Math.min(LOOP_S_MAX, s)) : 10,
     fps: +E.loopFps === 60 ? 60 : 30,
-    size: E.loopSize in LOOP_SIZES || E.loopSize === 'screen' ? E.loopSize : '1080'
+    size: E.loopSize in LOOP_SIZES || E.loopSize === 'screen' ? E.loopSize : '1080',
+    bg: E.loopBg === 'black' ? 'black' : 'design'
   };
 }
 // Pixel size: a fixed one, or this screen in device pixels (at most 4K's
@@ -151,6 +153,42 @@ function mp4File(V) {
   return new Blob([ftyp, moov, mp4U(4, data + 8), mp4Ascii('mdat'), ...V.chunks.map(c => c.data)], { type: 'video/mp4' });
 }
 
+// ── Pure black background ──
+// The colour the design's background is painted in (as Export PNG's
+// transparent background works it out), and whether it is light
+function loopBgColor() { return S.palette.mode === 'original' ? parseColor(modeBg(S.mode)) : parseColor(S.palette.paper); }
+function loopBgLight() { const b = loopBgColor(); return 0.2126 * b.r + 0.7152 * b.g + 0.0722 * b.b > 128; }
+// The background colour becomes true black: as colorToAlpha (Export PNG's
+// transparent background) laid over black, in one pass, so antialiased
+// edges and glows keep their shape and masks painted in the background
+// colour (lead, gaps, lids) go black too. Per channel: v − b × (1 − a).
+// Before the hue filter: Colour cycle leaves black black.
+// An opaque pixel as one 32-bit number, in this machine's byte order
+const LITTLE = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
+const u32Of = (r, g, b) => LITTLE ? ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0 : ((r << 24) | (g << 16) | (b << 8) | 255) >>> 0;
+const BLACK32 = u32Of(0, 0, 0);
+function loopBlack(cv, bg) {
+  if (!bg.r && !bg.g && !bg.b) return;                // already black
+  const c = cv.getContext('2d'), img = c.getImageData(0, 0, cv.width, cv.height), d = img.data;
+  const br = bg.r, bgg = bg.g, bb = bg.b;
+  // Per channel, 255 / (255 − b) above the background, 1 / b below (0: that side can't happen)
+  const ur = br < 255 ? 1 / (255 - br) : 0, ug = bgg < 255 ? 1 / (255 - bgg) : 0, ub = bb < 255 ? 1 / (255 - bb) : 0;
+  const lr = br ? 1 / br : 0, lg = bgg ? 1 / bgg : 0, lb = bb ? 1 / bb : 0;
+  // Plain background pixels (most of them) are one 32-bit compare
+  const u32 = new Uint32Array(d.buffer, d.byteOffset, d.length >> 2), bg32 = u32Of(br, bgg, bb);
+  for (let i = 0; i < d.length; i += 4) {
+    if (u32[i >> 2] === bg32) { u32[i >> 2] = BLACK32; continue; }
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    let a = r > br ? (r - br) * ur : (br - r) * lr;
+    const ag = g > bgg ? (g - bgg) * ug : (bgg - g) * lg; if (ag > a) a = ag;
+    const ab = b > bb ? (b - bb) * ub : (bb - b) * lb; if (ab > a) a = ab;
+    if (a <= 0.002) { d[i] = d[i + 1] = d[i + 2] = 0; continue; }
+    const k = 1 - a;
+    d[i] = r - br * k; d[i + 1] = g - bgg * k; d[i + 2] = b - bb * k;   // Uint8Clamped rounds and clamps
+  }
+  c.putImageData(img, 0, 0);
+}
+
 // ── Rendering ──
 // The current animation frame (ANIM.frame) into out, Colour cycle baked in
 function loopDraw(R) {
@@ -161,6 +199,7 @@ function loopDraw(R) {
     const target = hue ? R.work : R.out, c = target.getContext('2d');
     c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1;
     renderTo(c, R.W, R.H, R.view, { map: R.map });
+    if (R.black) loopBlack(target, R.black);
     if (hue) { R.oc.filter = hue; R.oc.drawImage(R.work, 0, 0); R.oc.filter = 'none'; }
   } finally { ANIM.live = keepLive; ANIM.exporting = keepExp; }
 }
@@ -203,9 +242,11 @@ async function exportLoopVideo() {
   if (o.hue) ANIM.hueK = loopNudge(set.secs * o.speed * HUE_RATE, 360);
   let now = 1000;
   const step = () => { now += dtMs; ANIM.clock = now; animStep(now); };
-  const R = { W, H, view: loopView(W, H), map: makeColorMap(S.palette), out: document.createElement('canvas'), work: document.createElement('canvas') };
+  const R = { W, H, view: loopView(W, H), map: makeColorMap(S.palette), out: document.createElement('canvas'), work: document.createElement('canvas'),
+    black: set.bg === 'black' ? loopBgColor() : null };
   R.out.width = R.work.width = W; R.out.height = R.work.height = H;
-  R.oc = R.out.getContext('2d');
+  R.oc = R.out.getContext('2d', { willReadFrequently: !!R.black });
+  if (R.black) R.work.getContext('2d', { willReadFrequently: true });
   const chunks = [], keep = [], asPng = W * H * 4 * Fn / 1e6 > LOOP_KEEP_MB;
   let desc = null, encErr = null, blob = null;
   const encoder = new VideoEncoder({
@@ -269,5 +310,5 @@ async function exportLoopVideo() {
   }
   if (!blob) return;
   if (!(await download(blob, `${fileBase()}-loop-${set.secs}s.mp4`))) return;
-  setStatus(`Video saved · ${W}×${H} · ${set.secs} s · ${fps} fps · ${codec.kind === 'avc' ? 'H.264' : 'VP9'} · ${(blob.size / 1e6).toFixed(1)} MB`, 8000);
+  setStatus(`Video saved · ${W}×${H} · ${set.secs} s · ${fps} fps · ${codec.kind === 'avc' ? 'H.264' : 'VP9'}${set.bg === 'black' ? ' · pure black' : ''} · ${(blob.size / 1e6).toFixed(1)} MB`, 8000);
 }

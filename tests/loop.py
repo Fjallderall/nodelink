@@ -20,6 +20,9 @@ SCEN = {
     'pcb-hue': "S.mode='pcb'; Object.assign(ANIM.opts,{drift:true,current:true,hue:true,spin:true});",
     'spin6': "S.mode='arcane'; S.sym={n:6,mirror:false}; Object.assign(ANIM.opts,{spin:true,hue:true,rings:true});",
     'glass-sun': "S.mode='glass'; Object.assign(ANIM.opts,{sun:true,flow:true,drift:true,sunSpd:2});",
+    # Pure black background (Phase 29): lead and other background-coloured masks go black too
+    'glass-black': "S.mode='glass'; E.loopBg='black'; Object.assign(ANIM.opts,{sun:true,drift:true,hue:true});",
+    'micro-black': "S.mode='microscope'; E.loopBg='black'; Object.assign(ANIM.opts,{life:true,blink:true});",
 }
 SECS = {'spin6': 15}   # Spin nudged to 1/6 turn (−17%), Colour cycle exactly one turn
 JS_RUN = """async ([secs, fps, size]) => {
@@ -63,8 +66,11 @@ def main():
             seam = np.abs(fr[0] - fr[-1]).mean()
             x0 = len(fr) - 30                    # where the crossfade starts (1 s at 30 fps)
             xf = d[x0 - 1:].max()
+            # Background level (0–255 full range): the darkest 10% of pixels, and how many are true black
+            full = frames(path, 480, 270)[::15]
+            dark = f"bg p10={np.percentile(full, 10):.0f} black={(full <= 1).mean()*100:.0f}%"
             print(f"{name}: {st['codec_name']} {st['width']}x{st['height']} frames={st['nb_read_frames']} dur={float(pr['format']['duration']):.3f}s "
-                  f"size={os.path.getsize(path)/1e6:.1f}MB render={r['ms']/1000:.1f}s | step median={np.median(d):.2f} max={d.max():.2f} seam={seam:.2f} xfade max={xf:.2f} "
+                  f"size={os.path.getsize(path)/1e6:.1f}MB render={r['ms']/1000:.1f}s | step median={np.median(d):.2f} max={d.max():.2f} seam={seam:.2f} xfade max={xf:.2f} {dark} "
                   f"| after: playing={r['playing']} clock={r['clock']} errors={errs}")
         b.close()
 
