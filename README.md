@@ -21,6 +21,10 @@ Everything runs in the browser; nothing is uploaded.
 
 Open `index.html` in a browser, or use the live site. No build step, no dependencies.
 
+## Credits
+
+Made by Fjallderall with Gemini and Claude. The About page in the app (menu title, or the bottom of the Library tab) tells how.
+
 ## Licence
 
 MIT, see [LICENSE](LICENSE).

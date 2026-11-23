@@ -45,7 +45,22 @@ aside::-webkit-scrollbar { width: 6px; }
 aside::-webkit-scrollbar-track { background: transparent; }
 aside::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
 
-h1 { font-size: 0.95rem; font-weight: 600; color: var(--gold); margin: 0 0 12px; letter-spacing: -0.01em; }
+h1 { font-size: 0.95rem; font-weight: 600; color: var(--gold); margin: 0 0 12px; letter-spacing: -0.01em; display: flex; align-items: center; justify-content: space-between; }
+h1 .about-btn { width: auto; margin: 0; padding: 2px 8px; font-size: 0.7rem; font-weight: 500; color: var(--muted); background: transparent; border-color: transparent; }
+h1 .about-btn:hover { color: var(--gold); background: var(--raise); }
+.about-link { display: block; width: 100%; margin-top: 18px; background: transparent; border-color: transparent; color: var(--muted); font-size: 0.74rem; text-align: left; padding: 6px 0; text-decoration: underline; text-underline-offset: 2px; }
+.about-link:hover { color: var(--gold); background: transparent; }
+/* About dialog */
+#about { margin: auto; width: min(460px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow-y: auto; padding: 18px 20px 16px;
+  background: rgba(23, 24, 26, 0.98); color: var(--bone); border: 1px solid var(--sepia); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+#about::backdrop { background: rgba(0, 0, 0, 0.55); }
+#about .drawer-head { margin-bottom: 6px; font-size: 1rem; }
+#about h2 { font-size: 0.78rem; font-weight: 600; color: var(--gold); margin: 16px 0 6px; }
+#about p { font-size: 0.82rem; line-height: 1.55; margin: 0 0 8px; }
+#about a { color: var(--guide); }
+#about .about-foot { margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--sepia); font-size: 0.74rem; color: var(--muted); line-height: 1.6; }
+#about .close { width: 28px; height: 28px; margin: 0; padding: 0; flex: none; font-size: 1rem; background: transparent; border-color: transparent; color: var(--muted); }
+#about .close:hover { background: var(--raise); color: var(--gold); }
 .sec { font-size: 0.72rem; font-weight: 600; color: var(--muted); margin: 16px 0 8px; }
 .cg { margin-bottom: 12px; }
 label { display: block; font-size: 0.75rem; margin-bottom: 4px; color: var(--muted); }
@@ -409,7 +424,7 @@ body.menu-min aside { display: none; }
   .seg button, #ed-layer button, #layer-swap { min-height: 40px; }
   .tabs .tab { min-height: 44px; }
   .del-node, .node-row .glyph-btn { min-height: 0; width: 36px; height: 36px; }
-  .fav .fav-del, .cut-head .close, .drawer .close { min-height: 0; width: 36px; height: 36px; }
+  .fav .fav-del, .cut-head .close, .drawer .close, #about .close { min-height: 0; width: 36px; height: 36px; }
   .fav .fav-del { display: block; }   /* no hover on touch */
   .pal-grid button, .sheet-min { min-height: 0; }
   .anim-grid .chk { min-height: 36px; }
@@ -422,7 +437,7 @@ body.menu-min aside { display: none; }
 </head>
 <body>
 <aside id="sidebar">
-  <h1>NodeLink</h1>
+  <h1>NodeLink <button class="about-btn" type="button" data-about title="How NodeLink was made, and who made it">About</button></h1>
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" data-tab="design">Design</button>
     <button class="tab" role="tab" data-tab="layout">Layout</button>
@@ -742,6 +757,7 @@ body.menu-min aside { display: none; }
       <button id="btn-load-json" title="Load a preset file">Load .json</button>
     </div>
     <input type="file" id="file-json" accept=".json,application/json" hidden>
+    <button class="about-link" type="button" data-about>About NodeLink</button>
   </section>
 </aside>
 
@@ -924,6 +940,25 @@ body.menu-min aside { display: none; }
     <button class="zbtn toggle" id="btn-move" aria-pressed="false" title="Move design: dragging the background moves the design, not the view (M)">✥</button>
   </div>
   <div id="status" role="status" aria-live="polite"></div>
+
+  <!-- ── ABOUT ── -->
+  <dialog id="about" aria-labelledby="about-title">
+    <div class="drawer-head">
+      <span id="about-title">About NodeLink</span>
+      <button class="close" type="button" id="about-close" title="Close (Esc)" aria-label="Close">×</button>
+    </div>
+    <p>NodeLink grows patterns between nodes you place: circuit boards, webs, lightning, nebulae, constellations, foam, microscope slides, arcane circles, schematics, stained glass, cathedral glass and vines. Export a transparent PNG for Procreate or print, an editable SVG, or a cut file for a Cricut, Silhouette or laser cutter.</p>
+    <h2>How it was made</h2>
+    <p>NodeLink was made by Fjallderall together with two AI models: Gemini (Google) and Claude (Anthropic). Fjallderall came up with the idea, decided what every mode should look like and how the app should work, and tested it on a PC, a phone and a Cricut. Gemini and Claude wrote the code from those directions, in many rounds of build, test and adjust.</p>
+    <p>It started as an arcane tattoo generator and grew, round by round, into the pattern tool it is now.</p>
+    <h2>How it works</h2>
+    <p>NodeLink is a single HTML file: no frameworks, no libraries, no server. Everything runs in your browser and your designs are never uploaded. Favourites are kept in this browser only; use Save .json to keep a design elsewhere.</p>
+    <div class="about-foot">
+      By Fjallderall, with Gemini and Claude<br>
+      <a href="https://github.com/Fjallderall/nodelink" target="_blank" rel="noopener">Source on GitHub</a> · MIT licence<br>
+      Version: <span id="about-version"></span>
+    </div>
+  </dialog>
 
   <!-- ── EXPORT DRAWER ── -->
   <div class="drawer" id="export-drawer" hidden>
@@ -3749,7 +3784,7 @@ function renderArcane(c, nodes, density, sigma, weight, seed) {
 }
 
 // ── Pillar symbols (Geometrical Schematics, style "pillar"/"mixed") ──
-// After Rose's pillar-corner sheet: glyphs built on a fine grid from a heavy
+// After a hand-drawn pillar-corner sheet: glyphs built on a fine grid from a heavy
 // stem, rungs (T and cross), close parallel stacks (≡), hooks off line ends,
 // and short serif ticks on free ends (⊢ ⊣, H shapes). Strokes vary in weight;
 // jitter tilts and nudges their ends for a hand-cut look. Each glyph can sit
@@ -11299,6 +11334,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
+const APP_VERSION = 'Phase 25 (23-11-2026)';   // shown in About; update with every published phase
 function setTab(name) {
   document.querySelectorAll('.tabs .tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name));
   document.querySelectorAll('aside .panel').forEach(p => { p.hidden = p.dataset.panel !== name; });
@@ -11376,6 +11412,7 @@ function setupShell() {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target, tag = (t.tagName || '').toLowerCase();
     if (tag === 'textarea' || tag === 'select' || (tag === 'input' && !['checkbox', 'range', 'radio'].includes(t.type))) return;
+    if (document.getElementById('about').open) return;
     const k = e.key.toLowerCase();
     if (k === 'escape') { if (ANIM.ambient) exitAmbient(); else if (!$('export-drawer').hidden) setDrawer(false); return; }
     if (k === 'f') { e.preventDefault(); ANIM.ambient ? exitAmbient() : (e.shiftKey ? enterScenes() : enterAmbient()); return; }
@@ -11407,6 +11444,7 @@ function setupEvents() {
   bindPaletteControls();
   bindNodeControls();
   bindLibrary();
+  bindAbout();
   bindExportControls();
 
   setupShell();
@@ -11623,6 +11661,7 @@ function bindHistoryControls() {
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' && (e.target.type === 'text' || e.target.type === 'number')) return;
     if (!(e.ctrlKey || e.metaKey)) return;
+    if (document.getElementById('about').open) return;
     const k = e.key.toLowerCase();
     if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
     else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
@@ -11741,6 +11780,18 @@ function bindLibrary() {
       setStatus('Could not load: ' + err.message);
     }
   });
+}
+
+// About: the dialog opens from the menu title and the Library tab; Esc,
+// × or a click on the backdrop closes it, and focus goes back to the opener.
+function bindAbout() {
+  const dlg = document.getElementById('about');
+  document.getElementById('about-version').textContent = APP_VERSION;
+  document.querySelectorAll('[data-about]').forEach(b => b.addEventListener('click', () => {
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+  }));
+  document.getElementById('about-close').addEventListener('click', () => dlg.close());
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // the backdrop
 }
 
 // Export settings and the cut panel.
