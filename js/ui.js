@@ -623,7 +623,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 26 (23-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 26b (23-11-2026)';   // shown in About; update with every published phase
 function setTab(name) {
   document.querySelectorAll('.tabs .tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name));
   document.querySelectorAll('aside .panel').forEach(p => { p.hidden = p.dataset.panel !== name; });
