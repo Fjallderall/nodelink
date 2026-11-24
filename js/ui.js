@@ -501,7 +501,19 @@ function syncPalette() {
   markPreset();
 }
 
+// Vary on a Layer 2 without a design has nothing to change: the button says
+// so and is off until Layer 2 gets a mode (help mode keeps its tip in data-help)
+const VARY_TIP = 'Random density, jitter, weight and seed; on Layer 1 also every node\'s size and line weight (V)';
+const VARY_EMPTY_TIP = 'Layer 2 has no design yet, so there is nothing to vary: pick a mode for Layer 2 first';
+function syncVary() {
+  const b = document.getElementById('btn-random'), empty = EDIT_L === 2 && S.layer.mode === 'none';
+  b.disabled = empty;
+  b.querySelector('.tl').textContent = empty ? 'Empty' : 'Vary';
+  const tip = empty ? VARY_EMPTY_TIP : VARY_TIP;
+  if (b.dataset.help !== undefined) b.dataset.help = tip; else b.title = tip;
+}
 function syncControls() {
+  syncVary();
   document.getElementById('mode').value = S.mode;
   document.getElementById('density').value = lget('density');
   document.getElementById('sigma').value = lget('sigma');
@@ -674,7 +686,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 41 (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 41b (24-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
