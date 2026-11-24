@@ -289,8 +289,8 @@ details.group[open] > summary::before { transform: rotate(90deg); }
 .anim-speed label { margin: 0; }
 .anim-speed input { flex: 1; }
 .anim-speed span { font-size: 0.72rem; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
-#btn-ambient, #btn-scenes { margin: 0; width: 100%; }
-.amb-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#btn-scenes { margin: 0; width: 100%; }
+.amb-row { display: grid; grid-template-columns: 1fr; gap: 6px; }
 body.playing #node-layer { opacity: 0.35; transition: opacity 0.3s; }
 body.playing #node-layer:hover { opacity: 1; }
 #ambient-exit { display: none; }
@@ -380,11 +380,19 @@ body.menu-min aside { display: none; }
   #tb-menu { padding-left: 10px; padding-right: 10px; }
   #tb-anim-reset .tl { display: none; }
   #tb-anim-reset { min-width: 0; padding-left: 10px; padding-right: 10px; }
+  /* Export toolbar-sized, so Ambient fits beside Animate and the bar stays two rows */
+  .tbtn.primary { min-width: 0; padding: 6px 10px; font-size: 0.74rem; }
+  /* While Stop shows, Ambient goes icon-only */
+  body.anim-active #btn-ambient .tl { display: none; }
+  body.anim-active #btn-ambient { min-width: 0; padding-left: 10px; padding-right: 10px; }
 }
 /* Narrow phones: while Stop shows, Play/Pause goes icon-only too, so Export stays on its row */
 @media (max-width: 380px) {
   body.anim-active #tb-anim .tl { display: none; }
   body.anim-active #tb-anim, body.anim-active #tb-anim-reset { min-width: 0; padding-left: 8px; padding-right: 8px; }
+  #btn-ambient .tl { display: none; }
+  #btn-ambient { min-width: 0; padding-left: 8px; padding-right: 8px; }
+  .tbtn.primary { padding-left: 7px; padding-right: 7px; }
 }
 /* Phone, portrait: panels open as bottom sheets over the sidebar, so the design stays in view */
 @media (max-width: 768px) {
