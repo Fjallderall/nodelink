@@ -708,9 +708,21 @@ function ambientZoom() {
 
 // A random element of a (not seeded: for Randomise only)
 const pickRandom = a => a[Math.floor(Math.random() * a.length)];
-// Randomise everything that makes up a design. Page, export and animation
-// settings stay. Weighted so most results are usable: plain settings are
+// Randomise everything that makes up a design, and which animation effects
+// play (2–3 of those suggested for the new design; speeds stay). Page and
+// export settings stay. Weighted so most results are usable: plain settings are
 // more likely than extremes.
+function randomizeAnim() {
+  const sug = [...new Set([[S.mode, 1], [S.layer.mode, 2]].filter(([m]) => MODE_INFO[m]).flatMap(([m, l]) => modeInfo(m, l)[1]))]
+    .filter(k => ANIM_BOOLS.includes(k) && k !== 'seasons');       // Seasons stays out (see Still open)
+  for (let i = sug.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [sug[i], sug[j]] = [sug[j], sug[i]]; }
+  const on = new Set(sug.slice(0, 2 + Math.floor(Math.random() * 2)));
+  if (on.has('flow')) on.delete('glitch');                         // Flow and Glitch exclude each other
+  ANIM_BOOLS.forEach(k => { ANIM.opts[k] = on.has(k); });
+  ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (ANIM.opts.draw ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
+  syncAnimControls();
+  saveUi({ anim: { ...ANIM.opts } });
+}
 function randomizeAll() {
   const chance = p => Math.random() < p;
   const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -750,6 +762,7 @@ function randomizeAll() {
     ? { mode: pickRandom(MODES.filter(m => m !== d.mode)), density: ri(2, 6), weight: +(0.4 + Math.random() * 0.6).toFixed(1), strength: ri(35, 75) }
     : { mode: 'none', density: 4, weight: 0.6, strength: 60 };
   applyDesign(d);
+  randomizeAnim();
   // Nodes last: they fill the region the new boundary and symmetry leave
   S.nodes = varyNodeSizes(randomNodes(ri(3, 8)));
   fitNodes();
