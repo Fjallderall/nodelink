@@ -27,6 +27,8 @@ OPTS = {
                     for sp in ['blood', 'hyphae'] for dt in [True, False] for dn in [6, 1, 10] for sg in [40, 0, 100]],
   'nebula': [{'_top': {'sigma': sg, 'density': dn, 'weight': w, 'nebula': {'glow': g}}}   # Phase 45
              for g in [True, False] for sg in [60, 0, 30, 100] for dn in [6, 1, 3, 10] for w in [1, 0.4, 2.5]],
+  'stained': [{'_top': {'sigma': sg, 'density': dn, 'weight': w, 'stained': {'ring': rg, 'ragged': rd}}}   # Phase 46
+              for (rg, rd) in [(True, False), (False, False), (True, True), (False, True)] for sg in [60, 0, 30, 100] for dn in [6, 1, 3, 10] for w in [1, 0.4, 2.5]],
   'water': [{'meet': m, 'spacing': sp, 'drops': dr} for m in ['wave', 'stop', 'cross'] for sp in [24, 10, 60, 17] for dr in [40, 0, 100]],
 }
 JS = r"""
