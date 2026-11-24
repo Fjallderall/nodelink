@@ -415,6 +415,7 @@ function syncVals() {
   syncAnimRelevance();
   document.getElementById('pcb-cg').classList.toggle('hidden', m !== 'pcb');
   document.getElementById('v-pcb-pour').textContent = lget('pcb').pour;
+  document.getElementById('web-cg').classList.toggle('hidden', m !== 'web');
   document.getElementById('neb-cg').classList.toggle('hidden', m !== 'nebula');
   document.getElementById('chaos-cg').classList.toggle('hidden', m !== 'chaosgate');
   document.getElementById('light-cg').classList.toggle('hidden', m !== 'lightning');
@@ -512,6 +513,7 @@ function syncControls() {
   document.getElementById('pcb-pour').value = pcb.pour;
   document.getElementById('pcb-meander').checked = pcb.meander;
   document.getElementById('pcb-silk').checked = pcb.silk;
+  document.getElementById('web-ring').checked = !lget('web') || lget('web').ring !== false;
   document.getElementById('neb-glow').checked = lget('nebula').glow;
   document.getElementById('light-glow').checked = lget('lightning').glow;
   document.getElementById('light-fill').checked = !!lget('lightning').fill;
@@ -672,7 +674,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 38 (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 39 (24-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -976,7 +978,7 @@ function bindComposition() {
   });
 }
 
-// Mode options (PCB, Stained Glass, Nebula, Schematics, Lightning, Arcane,
+// Mode options (PCB, Stained Glass, Synaptic Web, Nebula, Schematics, Lightning, Arcane,
 // Microscope, Vines, Cathedral Glass, Water Circles, Spiderweb curve).
 function bindModeOptions() {
   const pour = document.getElementById('pcb-pour');
@@ -992,6 +994,7 @@ function bindModeOptions() {
   optNow('pcb-silk', 'pcb', 'silk');
   optNow('stain-ragged', 'stained', 'ragged');
   optNow('stain-ring', 'stained', 'ring');
+  optNow('web-ring', 'web', 'ring');
   optNow('neb-glow', 'nebula', 'glow');
   optNow('chaos-style', 'chaos', 'style');
   optNow('chaos-frames', 'chaos', 'frames');

@@ -22,6 +22,7 @@ function getDesign() {
     seed: S.seed,
     dew: S.dew,
     pcb: { ...S.pcb },
+    web: { ...S.web },
     nebula: { ...S.nebula },
     lightning: { ...S.lightning },
     chaos: { ...S.chaos },
@@ -88,6 +89,7 @@ function applyDesign(d) {
   S.curved = d.curved !== false;
   const pcb = d.pcb || {};
   S.pcb = { pour: clampNum(pcb.pour, 0, 100, 40), meander: pcb.meander !== false, silk: !!pcb.silk };
+  S.web = { ring: !(d.web && d.web.ring === false) };
   S.nebula = { glow: !(d.nebula && d.nebula.glow === false) };
   S.lightning = sanLightning(d.lightning);
   S.arcane = sanArcane(d.arcane);
@@ -125,6 +127,7 @@ function applyDesign(d) {
   if (lay.curved !== undefined) S.layer.curved = lay.curved !== false;
   if (lay.seed !== undefined) S.layer.seed = Math.floor(clampNum(lay.seed, 0, 999999, 0));
   if (lay.pcb) S.layer.pcb = { pour: clampNum(lay.pcb.pour, 0, 100, 40), meander: lay.pcb.meander !== false, silk: !!lay.pcb.silk };
+  if (lay.web) S.layer.web = { ring: lay.web.ring !== false };
   if (lay.nebula) S.layer.nebula = { glow: lay.nebula.glow !== false };
   if (lay.lightning) S.layer.lightning = sanLightning(lay.lightning);
   if (lay.arcane) S.layer.arcane = sanArcane(lay.arcane);

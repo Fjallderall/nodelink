@@ -143,6 +143,7 @@ const S = {
   palette: { mode: 'original', ink: '#000000', paper: '#ffffff', glow: '#ffffff', preset: 'custom', l2: null },
   dew: 60,                                          // spiderweb dewdrop amount 0–100
   pcb: { pour: 40, meander: true, silk: false },     // PCB extras
+  web: { ring: true },                              // synaptic web: the soft outer ring (manifold)
   nebula: { glow: true },                           // nebula: soft gas clouds (screen/PNG)
   chaos: { style: 'mixed', frames: false, links: false },   // geometrical schematics: glyph style, cartouche frames, connecting lines
   lightning: { glow: true, fill: true },            // lightning: halo round the bolts (screen/PNG); fill: branches fill the boundary
@@ -200,7 +201,7 @@ function randomSeed() {
 // option it has not been given yet follows Layer 1 (so older designs look
 // the same). Its seed follows Layer 1's seed until it gets its own.
 let EDIT_L = 1;
-const LAYER_OPT_KEYS = ['sigma', 'dew', 'curve', 'curved', 'pcb', 'nebula', 'lightning', 'chaos', 'stained', 'arcane', 'micro', 'vine', 'glass', 'water'];
+const LAYER_OPT_KEYS = ['sigma', 'dew', 'curve', 'curved', 'pcb', 'web', 'nebula', 'lightning', 'chaos', 'stained', 'arcane', 'micro', 'vine', 'glass', 'water'];
 function layerSeed() {
   return S.layer.seed !== undefined ? S.layer.seed : (S.seed * 7919 + 13) % 1000000;
 }

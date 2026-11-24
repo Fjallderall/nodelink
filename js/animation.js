@@ -713,6 +713,7 @@ function randomizeAll() {
   d.curve = ri(20, 90);
   d.curved = chance(0.8);
   d.pcb = { pour: pickRandom([0, 20, 40, 60, 80]), meander: chance(0.7), silk: chance(0.3) };
+  d.web = { ring: chance(0.8) };
   d.nebula = { glow: chance(0.85) };
   d.lightning = { glow: chance(0.85), fill: chance(0.6) };
   d.arcane = { snap: chance(0.4), wobble: chance(0.3) ? ri(2, 7) * 10 : 0, links: chance(0.85), sats: chance(0.85) };
