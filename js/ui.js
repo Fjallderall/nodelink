@@ -556,6 +556,9 @@ function syncComposition() {
   $('bnd-size').value = S.boundary.size;
   $('v-bnd-size').textContent = S.boundary.size;
   $('bnd-border').value = S.boundary.border;
+  $('bnd-out-mode').value = S.boundary.outside ? 'own' : 'bg';
+  $('bnd-out').classList.toggle('hidden', !S.boundary.outside);
+  if (S.boundary.outside) { $('bnd-out').value = S.boundary.outside; $('bnd-out').dataset.used = 1; }
   $('xf-scale').value = Math.round(S.xf.scale * 100);
   $('v-xf-scale').textContent = Math.round(S.xf.scale * 100) + '%';
   $('xf-rot').value = S.xf.rot;
@@ -638,7 +641,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 32 (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 33 (24-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -872,6 +875,19 @@ function bindComposition() {
   $('xf-move').addEventListener('click', () => setMoveDesign(!S.moveDesign));
   $('btn-move').addEventListener('click', () => setMoveDesign(!S.moveDesign));
   changeCtl('bnd-border', t => { S.boundary.border = t.value; });
+  // Outside colour: the picker keeps its last colour while switched to
+  // Background; the first time, a grey that stands apart from the background
+  changeCtl('bnd-out-mode', t => {
+    const pick = $('bnd-out');
+    if (t.value === 'own' && !pick.dataset.used) {
+      const b = parseColor(S.palette.mode === 'original' ? modeBg(S.mode) : S.palette.paper) || { r: 0, g: 0, b: 0 };
+      pick.value = 0.2126 * b.r + 0.7152 * b.g + 0.0722 * b.b > 128 ? '#c8c8c8' : '#2a2a2a';
+    }
+    pick.dataset.used = 1;
+    S.boundary.outside = t.value === 'own' ? pick.value : null;
+  });
+  $('bnd-out').addEventListener('input', e => { S.boundary.outside = e.target.value; update(); });
+  $('bnd-out').addEventListener('change', () => commit());
 
   // Page format
   changeCtl('pg-preset', t => {

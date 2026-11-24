@@ -90,8 +90,10 @@ function drawGuides(c, raw) {
 }
 
 // view: { scale, tx, ty } maps world → target pixels
-// opts: { map, noBackground, overlay, still, plain }
+// opts: { map, noBackground, overlay, still, plain, noOutside }
 // plain: leave out the overlay effects (falling petals and leaves): cut and strokes SVG
+// noOutside: leave out the outside colour (painted later by outsideAfter);
+// the stencil renders (cut, bounds) never have it
 // Exports, bounds and the cut while paused: the paused frame (what is on
 // screen), unless opts.still. Stopped or playing: the design itself.
 function frozenFrame() {
@@ -111,7 +113,7 @@ function renderToInner(raw, w, h, view, opts) {
   c.save();
   c.translate(view.tx, view.ty);
   c.scale(view.scale, view.scale);
-  renderDesign(c, { raw, map: opts.map || null, plain: !!opts.plain });
+  renderDesign(c, { raw, map: opts.map || null, plain: !!opts.plain, outside: !opts.noOutside && opts.map !== STENCIL_MAP });
 
   // Editor overlay: drawn unmapped on the live canvas only
   if (opts.overlay) drawGuides(c, raw);
@@ -659,10 +661,12 @@ function exportPNG() {
   busy('Rendering PNG…', async () => {
     const L = exportLayout(exportPx());
     const map = makeColorMap(S.palette);
-    const ec = renderRaster(L, map);
+    // Transparent: the background goes, an outside colour stays as chosen
+    const ec = renderRaster(L, map, { noOutside: E.transparent });
     if (E.transparent) {
       const bg = S.palette.mode === 'original' ? parseColor(modeBg(S.mode)) : parseColor(S.palette.paper);
       colorToAlpha(ec, bg);
+      outsideAfter(ec, L.view);
     }
     // Paused with Colour cycle: the hue on screen is a CSS filter; bake it in
     let out = ec;

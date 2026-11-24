@@ -17,6 +17,8 @@ OPTS = {
                 for sg in [60, 0, 30, 50, 75, 100] for dw in [60, 0, 100] for (cv, cu) in [(False, 50), (True, 20), (True, 90)]],
   'lightning': [{'_top': {'sigma': sg, 'lightning': {'glow': g, 'fill': f}}}
                 for sg in [60, 0, 30, 100] for g in [True, False] for f in [False, True]],
+  'constellation': [{'_top': {'sigma': sg, 'density': dn, 'weight': w}}
+                    for sg in [60, 0, 35, 100] for dn in [6, 1, 3, 10] for w in [1, 0.4, 2.5]],
 }
 JS = r"""
 async ([modes, OPTS]) => {

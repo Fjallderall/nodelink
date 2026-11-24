@@ -271,6 +271,14 @@
         <option value="double">Double line</option>
         <option value="none">None</option>
       </select>
+      <label for="bnd-out-mode">Outside</label>
+      <div class="row">
+        <select id="bnd-out-mode" title="What fills the area outside the boundary: the design's background, or a colour of your own (in exports and videos too; not in cut files)">
+          <option value="bg">Background</option>
+          <option value="own">Own colour</option>
+        </select>
+        <input type="color" id="bnd-out" class="hidden" title="The colour outside the boundary" value="#2a2a2a">
+      </div>
     </div>
 
     <div class="cg">

@@ -189,6 +189,22 @@ function loopBlack(cv, bg) {
   c.putImageData(img, 0, 0);
 }
 
+// With an outside colour: loopBlack's result keeps no alpha, so the outside
+// can't go under it. Colour-to-alpha instead, the outside colour under it
+// (outsideAfter), then black under all: the same pixels as loopBlack inside,
+// and the border's outer edge blends into the outside colour.
+function loopBlackOutside(cv, R) {
+  colorToAlpha(cv, R.black);
+  outsideAfter(cv, R.view);
+  const c = cv.getContext('2d');
+  c.save();
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalCompositeOperation = 'destination-over';
+  c.fillStyle = '#000000';
+  c.fillRect(0, 0, cv.width, cv.height);
+  c.restore();
+}
+
 // ── Rendering ──
 // The current animation frame (ANIM.frame) into out, Colour cycle baked in
 function loopDraw(R) {
@@ -198,8 +214,9 @@ function loopDraw(R) {
     const hue = ANIM.hueFilter;
     const target = hue ? R.work : R.out, c = target.getContext('2d');
     c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1;
-    renderTo(c, R.W, R.H, R.view, { map: R.map });
-    if (R.black) loopBlack(target, R.black);
+    renderTo(c, R.W, R.H, R.view, { map: R.map, noOutside: !!R.black });
+    if (R.black && outsideOn()) loopBlackOutside(target, R);
+    else if (R.black) loopBlack(target, R.black);
     if (hue) { R.oc.filter = hue; R.oc.drawImage(R.work, 0, 0); R.oc.filter = 'none'; }
   } finally { ANIM.live = keepLive; ANIM.exporting = keepExp; }
 }

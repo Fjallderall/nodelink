@@ -201,6 +201,48 @@ function drawBorder(c) {
   c.restore();
 }
 
+// ── Outside colour ──
+// S.boundary.outside: an own colour for everything outside the boundary (up
+// to the page edge when the page clips), under the border line. Painted on
+// the raw context, so the colour scheme leaves it as chosen. One path, a
+// large square and the boundary wound the other way round, so the boundary
+// is a hole under the nonzero rule on a canvas and in SVG (C2S) alike.
+// Used by renderDesign, and after colour-to-alpha by the transparent PNG and
+// the pure black video (outsideAfter).
+const OUTSIDE_F = 1e5;                 // half the square, world units
+function outsideOn() { return !!(S.boundary.outside && boundaryPoly()); }
+function drawOutside(c) {
+  if (!outsideOn()) return;
+  const poly = boundaryPoly(), F = OUTSIDE_F;
+  let area = 0;
+  poly.forEach((p, i) => { const q = poly[(i + 1) % poly.length]; area += p.x * q.y - q.x * p.y; });
+  const pts = area > 0 ? [...poly].reverse() : poly;     // the square below winds positive
+  c.save();
+  c.globalAlpha = 1;
+  c.shadowBlur = 0;
+  c.fillStyle = S.boundary.outside;
+  c.beginPath();
+  c.moveTo(-F, -F); c.lineTo(F, -F); c.lineTo(F, F); c.lineTo(-F, F);
+  if (c.closePath) c.closePath();
+  pts.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y));
+  if (c.closePath) c.closePath();
+  c.fill();
+  c.restore();
+}
+// Paints the outside colour under what is already on canvas cv (whose
+// background was made transparent), drawn with view: { scale, tx, ty }
+function outsideAfter(cv, view) {
+  if (!outsideOn()) return;
+  const c = cv.getContext('2d');
+  c.save();
+  c.setTransform(view.scale, 0, 0, view.scale, view.tx, view.ty);
+  c.globalCompositeOperation = 'destination-over';
+  const pg = pageActive() && S.page.clip ? pageRect(true) : null;
+  if (pg) { c.beginPath(); c.rect(pg.x, pg.y, pg.w, pg.h); c.clip(); }
+  drawOutside(c);
+  c.restore();
+}
+
 // Splits a display list at its glow mark: { glows, rest }. The glow's
 // blobs (each starts with a fillStyle op) are dealt round-robin into GLOW_STEPS lists
 // that share the ops before the first blob. rest starts with the state the
@@ -713,6 +755,7 @@ function drawSunPanes(y, SP, need, step, a, lw) {
 // ── The whole design ──
 // Draws the full composed design in world coordinates. o: { raw, map, plain }
 // from renderTo (see drawSymmetric).
+// o.outside: paint the colour outside the boundary (renderTo decides)
 function renderDesign(c, o = {}) {
   const F = ANIM.live ? ANIM.frame : null;
   const dl = F ? null : getDisplayList();
@@ -721,6 +764,7 @@ function renderDesign(c, o = {}) {
   const gaze = c.getTransform();
   c.save();
   if (pg) { c.beginPath(); c.rect(pg.x, pg.y, pg.w, pg.h); c.clip(); }
+  if (o.outside) drawOutside(o.raw || c);
   c.save();
   if (poly) { polyPath(c, poly); c.clip(); }
   if (F && F.spin) c.rotate(F.spin);

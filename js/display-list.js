@@ -137,10 +137,12 @@ function renderMode(c, mode, density, weight, sd) {
 const DL = { key: null, main: null, layer: null };
 
 // Everything the recorded display list depends on (palette, symmetry, the
-// design transform and the page are applied when drawing, so they are not in it)
+// design transform, the page and the colour outside the boundary are applied
+// when drawing, so they are not in it)
 function dlKey() {
   const nodeKey = S.nodes.map(n => [n.x, n.y, n.size, n.w]);
-  return JSON.stringify([S.mode, S.density, S.sigma, S.weight, S.seed, S.dew, S.curved, S.curve, S.pcb, S.nebula, S.lightning, S.chaos, S.stained, S.arcane, S.micro, S.vine, S.glass, S.layer, S.boundary, nodeKey]);
+  const bnd = { ...S.boundary }; delete bnd.outside;
+  return JSON.stringify([S.mode, S.density, S.sigma, S.weight, S.seed, S.dew, S.curved, S.curve, S.pcb, S.nebula, S.lightning, S.chaos, S.stained, S.arcane, S.micro, S.vine, S.glass, S.layer, bnd, nodeKey]);
 }
 function getDisplayList() {
   const key = dlKey();
