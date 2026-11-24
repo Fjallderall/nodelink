@@ -122,7 +122,7 @@ function replay(ops, c, alphaMul = 1) {
 const RENDERERS = {
   pcb: renderPCB, foam: renderFoam, web: renderWeb, constellation: renderConstellation,
   chaosgate: renderChaosgate, arcane: renderArcane, stained: renderStained, spiderweb: renderSpiderweb, nebula: renderNebula,
-  lightning: renderLightning, microscope: renderMicroscope, vine: renderVine, glass: renderGlass
+  lightning: renderLightning, microscope: renderMicroscope, vine: renderVine, glass: renderGlass, water: renderWater
 };
 const MODES = Object.keys(RENDERERS);
 
@@ -143,7 +143,7 @@ const DL = { key: null, main: null, layer: null };
 function dlKey() {
   const nodeKey = S.nodes.map(n => [n.x, n.y, n.size, n.w]);
   const bnd = { ...S.boundary }; delete bnd.outside; delete bnd.lw; delete bnd.color;
-  return JSON.stringify([S.mode, S.density, S.sigma, S.weight, S.seed, S.dew, S.curved, S.curve, S.pcb, S.nebula, S.lightning, S.chaos, S.stained, S.arcane, S.micro, S.vine, S.glass, S.layer, bnd, nodeKey]);
+  return JSON.stringify([S.mode, S.density, S.sigma, S.weight, S.seed, S.dew, S.curved, S.curve, S.pcb, S.nebula, S.lightning, S.chaos, S.stained, S.arcane, S.micro, S.vine, S.glass, S.water, S.layer, bnd, nodeKey]);
 }
 function getDisplayList() {
   const key = dlKey();

@@ -416,6 +416,9 @@ function syncVals() {
   document.getElementById('stain-cg').classList.toggle('hidden', m !== 'stained');
   document.getElementById('vine-cg').classList.toggle('hidden', m !== 'vine');
   document.getElementById('glass-cg').classList.toggle('hidden', m !== 'glass');
+  document.getElementById('water-cg').classList.toggle('hidden', m !== 'water');
+  document.getElementById('v-water-spacing').textContent = sanWater(lget('water')).spacing;
+  document.getElementById('v-water-drops').textContent = sanWater(lget('water')).drops;
   document.getElementById('v-vine-leaves').textContent = lget('vine').leaves;
   document.getElementById('v-vine-flowers').textContent = lget('vine').flowers;
   document.getElementById('mode').classList.toggle('hidden', L2);
@@ -524,6 +527,10 @@ function syncControls() {
   document.getElementById('glass-style').value = go.style;
   document.getElementById('glass-set').value = go.set;
   document.getElementById('glass-light').checked = go.light;
+  const wo = sanWater(lget('water'));
+  document.getElementById('water-meet').value = wo.meet;
+  document.getElementById('water-spacing').value = wo.spacing;
+  document.getElementById('water-drops').value = wo.drops;
   document.getElementById('chaos-style').value = ch.style;
   document.getElementById('chaos-frames').checked = ch.frames;
   document.getElementById('chaos-links').checked = ch.links;
@@ -656,7 +663,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 36b (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 37 (24-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -959,7 +966,7 @@ function bindComposition() {
 }
 
 // Mode options (PCB, Stained Glass, Nebula, Schematics, Lightning, Arcane,
-// Microscope, Vines, Cathedral Glass, Spiderweb curve).
+// Microscope, Vines, Cathedral Glass, Water Circles, Spiderweb curve).
 function bindModeOptions() {
   const pour = document.getElementById('pcb-pour');
   pour.addEventListener('input', () => { lset('pcb', { ...lget('pcb'), pour: parseFloat(pour.value) }); syncVals(); update(); });
@@ -1007,6 +1014,9 @@ function bindModeOptions() {
   optCtl('glass-style', 'glass', 'style', 'sel');
   optCtl('glass-set', 'glass', 'set', 'sel');
   optCtl('glass-light', 'glass', 'light', 'check');
+  optCtl('water-meet', 'water', 'meet', 'sel');
+  optCtl('water-spacing', 'water', 'spacing', 'num');
+  optCtl('water-drops', 'water', 'drops', 'num');
 
   document.getElementById('curved').addEventListener('change', e => {
     lset('curved', e.target.checked);

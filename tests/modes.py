@@ -23,6 +23,7 @@ OPTS = {
              for wb in [0, 40, 100] for lk in [True, False] for st in [True, False] for sn in [False, True]],
   'microscope': [{'_top': {'micro': {'veins': v, 'orgs': o, 'cilia': ci, 'detail': dt}}}
                  for o in [100, 40, 200, 0] for (v, dt) in [(True, True), (False, False), (True, False)] for ci in ['auto', 'on', 'off']],
+  'water': [{'meet': m, 'spacing': sp, 'drops': dr} for m in ['wave', 'stop', 'cross'] for sp in [24, 10, 60, 17] for dr in [40, 0, 100]],
 }
 JS = r"""
 async ([modes, OPTS]) => {

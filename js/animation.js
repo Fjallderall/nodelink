@@ -605,7 +605,8 @@ const MODE_INFO = {
   lightning: ['Branching Lichtenberg discharges between the nodes.', ['strikes', 'draw', 'glitch']],
   microscope: ['Cells under a darkfield microscope: the nodes are large cells joined by slime-mould veins, with bacteria, diatoms and amoebae around them.', ['life', 'blink', 'drift']],
   vine: ['Climbing vines: stems wave between the nodes, shoots curl off them with leaves, buds, tendrils and flowers, and every node blooms.', ['wind', 'bloom', 'draw']],
-  glass: ['Coloured cathedral glass in dark lead: a jewel mosaic, Tiffany flowers and leaves, or a rose window on every node.', ['sun', 'draw', 'drift']]
+  glass: ['Coloured cathedral glass in dark lead: a jewel mosaic, Tiffany flowers and leaves, or a rose window on every node.', ['sun', 'draw', 'drift']],
+  water: ['Ripples on water: rings spread from every node and from raindrops between them, and bend, stop or cross where they meet.', ['draw', 'spin', 'hue']]
 };
 // Sliders for one effect each: [key, element id, min, max]; shown only while
 // their effect is on (syncAnimRelevance)
@@ -721,6 +722,7 @@ function randomizeAll() {
   d.vine = { leaves: pickRandom([60, 100, 100, 150]), flowers: pickRandom([30, 60, 60, 90]), leaf: pickRandom(['almond', 'almond', 'round', 'ivy', 'mixed']),
     bloom: pickRandom(['mixed', 'blossom', 'daisy', 'rose']), tendrils: chance(0.8), veins: chance(0.85) };
   d.glass = { style: pickRandom(GLASS_STYLES), set: pickRandom(['jewel', 'jewel', 'pastel', 'amber', 'sea', 'clear']), light: chance(0.9) };
+  d.water = { meet: pickRandom(['wave', 'wave', 'stop', 'cross']), spacing: pickRandom([16, 20, 24, 24, 30, 36]), drops: pickRandom([0, 20, 40, 40, 70]) };
   // Colours: a third keep the mode's own, the rest a random scheme
   if (chance(0.35)) d.palette = { mode: 'original', ink: '#000000', paper: '#ffffff', glow: '#ffffff', preset: 'custom', l2: null };
   else { const p = pickRandom(PALETTES); d.palette = { mode: 'tint', paper: p.bg, ink: p.ink, glow: p.glow, preset: p.id, l2: null }; }

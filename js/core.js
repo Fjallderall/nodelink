@@ -17,7 +17,8 @@
    modes/*.js         one renderer per mode: pcb, foam, web (+ manifold
                       boundary), constellation, glyphs (shared helpers),
                       arcane, chaosgate (+ pillar symbols), stained, glass,
-                      lightning, nebula, microscope, spiderweb, vine
+                      lightning, nebula, microscope, spiderweb, vine,
+                      water
    display-list.js    DISPLAY LIST, RENDERERS, MODES, Draw-on timing
    compose.js         PAGE FORMAT · COMPOSITION · DRAW (Drift warp, Item
                       cache, Symmetric replay, The whole design)
@@ -149,6 +150,7 @@ const S = {
   micro: { veins: true, orgs: 100, cilia: 'auto', detail: true },       // microscope: slime veins, organism amount %, cilia, cell insides
   vine: { leaves: 100, flowers: 60, leaf: 'almond', bloom: 'mixed', tendrils: true, veins: true, season: 'summer' },   // vines: leaf amount %, tip flower chance %, leaf shape, flower style, tendrils, veins
   glass: { style: 'mosaic', set: 'jewel', light: true },   // cathedral glass: style, glass colour set, light & shading
+  water: { meet: 'wave', spacing: 24, drops: 40 },   // water circles: where ripples meet (wave / stop / cross), ring spacing (world units), raindrops 0–100
   stained: { ring: true, ragged: true },            // stained glass: outer lead ring; ragged edge (no round window, no ring)
   curved: true,                                     // spiderweb: curved silk on/off
   curve: 60,                                        // spiderweb thread curvature 0–100
@@ -198,7 +200,7 @@ function randomSeed() {
 // option it has not been given yet follows Layer 1 (so older designs look
 // the same). Its seed follows Layer 1's seed until it gets its own.
 let EDIT_L = 1;
-const LAYER_OPT_KEYS = ['sigma', 'dew', 'curve', 'curved', 'pcb', 'nebula', 'lightning', 'chaos', 'stained', 'arcane', 'micro', 'vine', 'glass'];
+const LAYER_OPT_KEYS = ['sigma', 'dew', 'curve', 'curved', 'pcb', 'nebula', 'lightning', 'chaos', 'stained', 'arcane', 'micro', 'vine', 'glass', 'water'];
 function layerSeed() {
   return S.layer.seed !== undefined ? S.layer.seed : (S.seed * 7919 + 13) % 1000000;
 }

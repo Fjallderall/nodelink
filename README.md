@@ -1,6 +1,6 @@
 # NodeLink
 
-A node-based pattern generator that runs in the browser. Place up to nine nodes, pick a mode, and NodeLink grows a design between them: circuit boards, synaptic webs, spiderwebs, lightning, nebulae, constellations, foam, microscope slides, arcane circles, geometrical schematics, stained glass, cathedral glass and vines.
+A node-based pattern generator that runs in the browser. Place up to nine nodes, pick a mode, and NodeLink grows a design between them: circuit boards, synaptic webs, spiderwebs, lightning, nebulae, constellations, foam, microscope slides, arcane circles, geometrical schematics, stained glass, cathedral glass, vines and water circles.
 
 ## What it does
 

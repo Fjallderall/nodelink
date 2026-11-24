@@ -3,7 +3,7 @@
 // draw(): the screen canvas, each frame or update(). renderTo(): any target
 // (screen view, export layout); both end in renderDesign.
 const ACCENT = { pcb: '#22d0ff', foam: '#ddd6c8', web: '#ddd6c8', constellation: '#e4ddd0',
-  chaosgate: '#e4ddd0', arcane: '#e4ddd0', stained: '#d9cfbd', spiderweb: '#eef3f6', nebula: '#c9b8ff', lightning: '#cfe0ff', microscope: '#bfe9dc', vine: '#b5d29a', glass: '#e6cf8a' };
+  chaosgate: '#e4ddd0', arcane: '#e4ddd0', stained: '#d9cfbd', spiderweb: '#eef3f6', nebula: '#c9b8ff', lightning: '#cfe0ff', microscope: '#bfe9dc', vine: '#b5d29a', glass: '#e6cf8a', water: '#cfe8f2' };
 function modeBg(mode) {
   if (mode === 'spiderweb') return '#0b0e11';
   if (mode === 'nebula') return '#05040c';
@@ -11,6 +11,7 @@ function modeBg(mode) {
   if (mode === 'microscope') return '#03100e';
   if (mode === 'vine') return '#060b07';
   if (mode === 'glass') return '#07070a';
+  if (mode === 'water') return '#041019';
   return (mode === 'pcb' || mode === 'constellation') ? '#040a14' : '#080808';
 }
 

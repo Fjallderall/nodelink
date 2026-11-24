@@ -44,6 +44,7 @@
         <option value="microscope">Microscope (Cells)</option>
         <option value="vine">Vines (Leaves &amp; Flowers)</option>
         <option value="glass">Cathedral Glass (Coloured)</option>
+        <option value="water">Water Circles (Ripples)</option>
       </select>
       <select id="mode" title="What kind of pattern grows between the nodes. Each mode has its own options below">
         <option value="pcb" selected>Circuit Board (PCB)</option>
@@ -59,6 +60,7 @@
         <option value="microscope">Microscope (Cells)</option>
         <option value="vine">Vines (Leaves &amp; Flowers)</option>
         <option value="glass">Cathedral Glass (Coloured)</option>
+        <option value="water">Water Circles (Ripples)</option>
       </select>
     </div>
     <p class="mode-info" id="mode-info"></p>
@@ -175,6 +177,19 @@
       </select>
       <label class="check" title="Cathedral Glass: light shining through and shading on each piece"><input type="checkbox" id="glass-light" checked> Light &amp; shading</label>
       <div class="note">The glass colours show with the colour scheme "Original"; other schemes turn them into tones of the scheme. Lead is a gap in stencils and cut files, so every piece of glass cuts out on its own. Jitter curves the Tiffany lead and makes the mosaic more shattered.</div>
+    </div>
+    <div class="cg" id="water-cg">
+      <label for="water-meet">Where ripples meet</label>
+      <select id="water-meet" title="Water Circles: what the rings do where the ripples of two drops meet">
+        <option value="wave">Interference (rings bend and merge)</option>
+        <option value="stop">Stop at the meeting line</option>
+        <option value="cross">Cross freely (overlap)</option>
+      </select>
+      <label for="water-spacing">Ring spacing <span class="val" id="v-water-spacing">24</span></label>
+      <input type="range" id="water-spacing" title="Water Circles: the distance between the rings (the wavelength)" min="10" max="60" step="1" value="24">
+      <label for="water-drops">Raindrops <span class="val"><span id="v-water-drops">40</span>%</span></label>
+      <input type="range" id="water-drops" title="Water Circles: how many small raindrop ripples fall between the nodes (0% = none)" min="0" max="100" step="5" value="40">
+      <div class="note">Density sets how far the rings reach, Jitter makes the water surface wavy. The rings thin and fade outward; the faintest still show in stencils and cut files. Cross freely gets dense where many rings overlap: for small cuts, raise Ring spacing.</div>
     </div>
     <div class="cg" id="dew-cg">
       <div class="note">Spiderweb: low jitter = orb web, high = tangled sheet web.</div>
@@ -552,7 +567,7 @@
       <span id="about-title">About NodeLink</span>
       <button class="close" type="button" id="about-close" title="Close (Esc)" aria-label="Close">×</button>
     </div>
-    <p>NodeLink grows patterns between nodes you place: circuit boards, webs, lightning, nebulae, constellations, foam, microscope slides, arcane circles, schematics, stained glass, cathedral glass and vines. Export a transparent PNG for Procreate or print, an editable SVG, or a cut file for a Cricut, Silhouette or laser cutter.</p>
+    <p>NodeLink grows patterns between nodes you place: circuit boards, webs, lightning, nebulae, constellations, foam, microscope slides, arcane circles, schematics, stained glass, cathedral glass, vines and water circles. Export a transparent PNG for Procreate or print, an editable SVG, or a cut file for a Cricut, Silhouette or laser cutter.</p>
     <h2>How it was made</h2>
     <p>NodeLink was vibecoded by Fjallderall with two AI models, Gemini (Google) and Claude (Anthropic). Fjallderall didn't write the code by hand, but directed the AI: came up with the idea, decided what every mode should look like and how it should behave, and kept testing on a PC, a phone and a Cricut, sending the AI back until each part looked right, ran smoothly and cut cleanly. Gemini and Claude wrote the code from those directions, over many rounds of build, test and adjust.</p>
     <p>It started as an arcane tattoo generator and grew, round by round, into the pattern tool it is now.</p>
@@ -668,6 +683,7 @@
 <script src="js/modes/chaosgate.js"></script>
 <script src="js/modes/stained.js"></script>
 <script src="js/modes/glass.js"></script>
+<script src="js/modes/water.js"></script>
 <script src="js/modes/lightning.js"></script>
 <script src="js/modes/nebula.js"></script>
 <script src="js/modes/microscope.js"></script>

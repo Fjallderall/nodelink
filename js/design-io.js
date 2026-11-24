@@ -30,6 +30,7 @@ function getDesign() {
     micro: { ...S.micro },
     vine: { ...S.vine },
     glass: { ...S.glass },
+    water: { ...S.water },
     curved: S.curved,
     curve: S.curve,
     palette: { ...S.palette, l2: S.palette.l2 ? { ...S.palette.l2 } : null },
@@ -93,6 +94,7 @@ function applyDesign(d) {
   S.micro = sanMicro(d.micro);
   S.vine = sanVine(d.vine);
   S.glass = sanGlass(d.glass);
+  S.water = sanWater(d.water);
   // Files from before the pillar glyphs have no chaos block: classic, no frames
   S.chaos = d.chaos ? { style: ['mixed', 'pillar', 'classic'].includes(d.chaos.style) ? d.chaos.style : 'mixed', frames: !!d.chaos.frames, links: d.chaos.links !== false }
     : { style: 'classic', frames: false, links: true };
@@ -129,6 +131,7 @@ function applyDesign(d) {
   if (lay.micro) S.layer.micro = sanMicro(lay.micro);
   if (lay.vine) S.layer.vine = sanVine(lay.vine);
   if (lay.glass) S.layer.glass = sanGlass(lay.glass);
+  if (lay.water) S.layer.water = sanWater(lay.water);
   if (lay.chaos) S.layer.chaos = { style: ['mixed', 'pillar', 'classic'].includes(lay.chaos.style) ? lay.chaos.style : 'mixed', frames: !!lay.chaos.frames, links: lay.chaos.links !== false };
   if (lay.stained) S.layer.stained = { ring: lay.stained.ring !== false, ragged: !!lay.stained.ragged };
   S.boundary = {
