@@ -21,6 +21,8 @@ OPTS = {
                     for sg in [60, 0, 35, 100] for dn in [6, 1, 3, 10] for w in [1, 0.4, 2.5]],
   'arcane': [{'snap': sn, 'wobble': wb, 'links': lk, 'sats': st}
              for wb in [0, 40, 100] for lk in [True, False] for st in [True, False] for sn in [False, True]],
+  'microscope': [{'_top': {'micro': {'veins': v, 'orgs': o, 'cilia': ci, 'detail': dt}}}
+                 for o in [100, 40, 200, 0] for (v, dt) in [(True, True), (False, False), (True, False)] for ci in ['auto', 'on', 'off']],
 }
 JS = r"""
 async ([modes, OPTS]) => {

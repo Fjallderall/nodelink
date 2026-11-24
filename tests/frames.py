@@ -39,7 +39,7 @@ SCEN = {
     'sky': "S.mode='constellation'; S.layer={mode:'lightning',density:5,weight:0.8,strength:80}; Object.assign(ANIM.opts,{twinkle:true,strikes:true,current:true,skRate:4,shoot:3});",
 }
 
-# Extra scenarios (frames.py FILE OUT.json extra): Cathedral Glass and Vines in
+# Extra scenarios (frames.py FILE OUT.json extra): Cathedral Glass, Vines and Microscope in
 # more depth, run on the old and the new file to compare (no reference file)
 SCEN_EXTRA = {
     'tiffany-sun-draw': "S.mode='glass'; S.glass={style:'tiffany',set:'sea',light:true}; Object.assign(ANIM.opts,{sun:true,draw:true,drift:true,sunSpd:2});",
@@ -50,6 +50,9 @@ SCEN_EXTRA = {
     'vine-winter': "S.mode='vine'; S.vine={leaves:100,flowers:60,leaf:'round',bloom:'rose',tendrils:false,veins:false,season:'winter'}; S.sym={n:4,mirror:false}; Object.assign(ANIM.opts,{seasons:true,bloom:true,ssSpd:8});",
     'vine-grow': "S.mode='vine'; Object.assign(ANIM.opts,{draw:true,bloom:true,petals:true,wind:true,ptRate:5});",
     'vine-morph': "S.mode='vine'; Object.assign(ANIM.opts,{morph:true,drift:true,bloom:true});",
+    'micro-life-sym': "S.mode='microscope'; S.sym={n:6,mirror:true}; S.micro={veins:true,orgs:100,cilia:'on',detail:true}; Object.assign(ANIM.opts,{life:true,blink:true,drift:true}); ANIM.gaze={x:-50,y:30};",
+    'micro-hex-draw': "S.mode='microscope'; S.boundary={shape:'hexagon',size:300,border:'single'}; S.sigma=90; Object.assign(ANIM.opts,{draw:true,blink:true,life:true,lfSpd:3});",
+    'micro-plain': "S.mode='microscope'; S.micro={veins:false,orgs:180,cilia:'off',detail:false}; Object.assign(ANIM.opts,{life:true,spin:true,hue:true});",
 }
 if len(sys.argv) > 3 and sys.argv[3] == 'extra': SCEN = SCEN_EXTRA
 
