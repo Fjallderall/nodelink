@@ -1,5 +1,5 @@
 # Mode depth: one mode's options in depth, for refactors of a mode renderer.
-# Usage: modes.py FILE.html OUT.json MODE…   (modes covered: glass, vine;
+# Usage: modes.py FILE.html OUT.json MODE…   (modes covered: glass, vine, nebula, …;
 # add a block to OPTS for another mode). Hashes the canvas per design and the
 # strokes SVG for a few; compare two runs with the snippet in README.md.
 import sys, json
@@ -25,6 +25,8 @@ OPTS = {
                  for o in [100, 40, 200, 0] for (v, dt) in [(True, True), (False, False), (True, False)] for ci in ['auto', 'on', 'off']]
                  + [{'_top': {'micro': {'specimen': sp, 'veins': True, 'orgs': 100, 'cilia': 'auto', 'detail': dt}, 'density': dn, 'sigma': sg}}   # Phase 43: no old reference (an old file loads them as organisms)
                     for sp in ['blood', 'hyphae'] for dt in [True, False] for dn in [6, 1, 10] for sg in [40, 0, 100]],
+  'nebula': [{'_top': {'sigma': sg, 'density': dn, 'weight': w, 'nebula': {'glow': g}}}   # Phase 45
+             for g in [True, False] for sg in [60, 0, 30, 100] for dn in [6, 1, 3, 10] for w in [1, 0.4, 2.5]],
   'water': [{'meet': m, 'spacing': sp, 'drops': dr} for m in ['wave', 'stop', 'cross'] for sp in [24, 10, 60, 17] for dr in [40, 0, 100]],
 }
 JS = r"""
