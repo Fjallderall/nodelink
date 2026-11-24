@@ -493,7 +493,7 @@ function fpsTips() {
   if (o.draw) out.push('<b>Draw on</b> draws the design afresh every frame: always while it loops per node, until complete with Flow or Morph.');
   if (S.layer.mode && S.layer.mode !== 'none') out.push(`<b>Layer 2</b> (${MODE_NAME(S.layer.mode)}) adds a second design: turn it off or lower its density.`);
   if (S.density >= 7) out.push(`<b>Density</b> ${S.density}: one or two steps lower thins the pattern out.`);
-  if (modes.includes('microscope') && S.micro && S.micro.orgs > 100) out.push('<b>Organisms</b> (Microscope) above 100%: fewer is lighter.');
+  if (modes.includes('microscope') && S.micro && S.micro.specimen === 'organisms' && S.micro.orgs > 100) out.push('<b>Microorganisms</b> (Microscope) above 100%: fewer is lighter.');
   if (o.hue) out.push('<b>Colour cycle</b> filters the whole canvas every frame; it costs most on large screens.');
   if (!out.length) out.push('A smaller browser window has fewer pixels to fill (the resolution already drops by itself while frames are slow).');
   return out.slice(0, 4);
@@ -606,7 +606,7 @@ const MODE_INFO = {
   spiderweb: ['An orb web or a tangle anchored on the nodes, with dew drops.', ['dewroll', 'wind', 'draw']],
   nebula: ['Glowing gas clouds and swirls around the nodes.', ['twinkle', 'flow', 'spin']],
   lightning: ['Branching Lichtenberg discharges between the nodes.', ['strikes', 'draw', 'glitch']],
-  microscope: ['Cells under a darkfield microscope: the nodes are large cells joined by slime-mould veins, with bacteria, diatoms and amoebae around them.', ['life', 'blink', 'drift']],
+  microscope: ['Microorganisms under a darkfield microscope: the nodes are large cells joined by slime-mould veins, with bacteria, diatoms and amoebae around them.', ['life', 'blink', 'drift']],
   vine: ['Climbing vines: stems wave between the nodes, shoots curl off them with leaves, buds, tendrils and flowers, and every node blooms.', ['wind', 'bloom', 'draw']],
   glass: ['Coloured cathedral glass in dark lead: a jewel mosaic, Tiffany flowers and leaves, or a rose window on every node.', ['sun', 'draw', 'drift']],
   water: ['Ripples on water: rings spread from every node and from raindrops between them, and bend, stop or cross where they meet.', ['ripples', 'draw', 'hue']]
@@ -619,12 +619,19 @@ const ANIM_BOOLS = ['draw', 'drift', 'glitch', 'flow', 'dewroll', 'blink', 'wind
 const ANIM_NAMES = { draw: 'Draw on', drift: 'Drift', glitch: 'Glitch', flow: 'Flow', dewroll: 'Rolling dew', blink: 'Blink', wind: 'Wind', bloom: 'Bloom', rings: 'Turning rings', current: 'Current', twinkle: 'Twinkle', strikes: 'Strikes', life: 'Life', sun: 'Sunlight', ripples: 'Ripples', breathe: 'Breathing', petals: 'Falling petals', seasons: 'Seasons', morph: 'Morph seeds',
   spin: 'Spin', pulse: 'Pulse', hue: 'Colour cycle', swap: 'Symbol swap (with Flow)' };
 const MODE_NAME = m => { const o = document.querySelector(`#mode option[value="${m}"]`); return o ? o.textContent : m; };
+// The Microscope's text depends on the specimen of the layer it is on
+const MICRO_INFO = {
+  organisms: MODE_INFO.microscope,
+  blood: ['A blood smear under the microscope: a dense layer of red blood cells with white blood cells (the nodes) and a few platelets.', ['life', 'blink', 'drift']],
+  hyphae: ['Fungal hyphae under the microscope: branching, septate threads grow from the nodes and cross in layers, with soft out-of-focus threads behind.', ['draw', 'drift', 'flow']]
+};
+const modeInfo = (m, layer) => m === 'microscope' ? MICRO_INFO[((layer === 2 ? S.layer.micro : S.micro) || {}).specimen] || MODE_INFO.microscope : MODE_INFO[m];
 function syncModeInfo() {
-  const m = editMode(), info = MODE_INFO[m], el = document.getElementById('mode-info');
+  const m = editMode(), info = modeInfo(m, EDIT_L), el = document.getElementById('mode-info');
   el.classList.toggle('hidden', !info);
   if (info) el.innerHTML = `${info[0]} <b>Suits:</b> ${info[1].map(k => ANIM_NAMES[k]).join(', ')}.`;
   const modes = [S.mode, S.layer.mode].filter(x => MODE_INFO[x]);
-  const rec = new Set(modes.flatMap(x => MODE_INFO[x][1]));
+  const rec = new Set([[S.mode, 1], [S.layer.mode, 2]].filter(([x]) => MODE_INFO[x]).flatMap(([x, l]) => modeInfo(x, l)[1]));
   ANIM_BOOLS.forEach(k =>
     document.getElementById('an-' + k).closest('label').classList.toggle('rec', rec.has(k)));
   document.getElementById('an-rec').textContent = 'Suggested for ' + modes.map(MODE_NAME).join(' + ') + ' (highlighted)'
@@ -719,7 +726,7 @@ function randomizeAll() {
   d.nebula = { glow: chance(0.85) };
   d.lightning = { glow: chance(0.85), fill: chance(0.6) };
   d.arcane = { snap: chance(0.4), wobble: chance(0.3) ? ri(2, 7) * 10 : 0, links: chance(0.85), sats: chance(0.85) };
-  d.micro = { veins: chance(0.85), orgs: pickRandom([50, 100, 100, 150]), cilia: pickRandom(['auto', 'auto', 'on', 'off']), detail: chance(0.85) };
+  d.micro = { specimen: 'organisms', veins: chance(0.85), orgs: pickRandom([50, 100, 100, 150]), cilia: pickRandom(['auto', 'auto', 'on', 'off']), detail: chance(0.85) };
   d.chaos = { style: pickRandom(['mixed', 'pillar', 'classic']), frames: chance(0.4), links: chance(0.8) };
   d.stained = { ring: chance(0.7), ragged: chance(0.5) };
   d.vine = { leaves: pickRandom([60, 100, 100, 150]), flowers: pickRandom([30, 60, 60, 90]), leaf: pickRandom(['almond', 'almond', 'round', 'ivy', 'mixed']),

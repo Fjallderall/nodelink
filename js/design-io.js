@@ -71,7 +71,7 @@ function sanArcane(a) {
 }
 function sanMicro(m) {
   m = m || {};
-  return { veins: m.veins !== false, orgs: Math.round(clampNum(m.orgs, 0, 200, 100)),
+  return { specimen: ['organisms', 'blood', 'hyphae'].includes(m.specimen) ? m.specimen : 'organisms', veins: m.veins !== false, orgs: Math.round(clampNum(m.orgs, 0, 200, 100)),
     cilia: ['auto', 'on', 'off'].includes(m.cilia) ? m.cilia : 'auto', detail: m.detail !== false };
 }
 

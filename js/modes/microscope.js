@@ -2,6 +2,7 @@
 // Nodes are large cells (double membrane, nucleus, organelles; cilia with
 // jitter), joined by slime-mould veins along the node order. Around them float
 // small organisms: cocci, rod bacteria, diatoms, spirilla, amoebae, specks.
+// This is the Microorganisms specimen; Blood cells and Hyphae are in specimens.js.
 // The organisms are placed without looking at the nodes (in the boundary, or
 // a unit disc scaled round the nodes) and the cells push them aside, so a
 // drifting node shoves them smoothly instead of making them pop.
@@ -30,6 +31,7 @@ const MIC_NUC_RING = 0.86;             // nucleus inner ring, × its outline
 function renderMicroscope(c, nodes, density, sigma, weight, seed) {
   if (!nodes.length) return;
   const mc = micSetup(c, nodes, density, sigma, weight, seed);
+  if (mc.MO.specimen === 'blood' || mc.MO.specimen === 'hyphae') { micSpecimen(mc, mc.MO.specimen); return; }   // specimens.js
   micCells(mc);
   micOrgPlace(mc);
   micOrgPush(mc);
@@ -296,7 +298,7 @@ function micCellBody(mc, k, ci, Q) {
   const lg = { kind: 'cell', id: ci, x, y, r, rot, f, hs: k.s0, bg: BG, col: MIC_COL, dim: MIC_DIM, cyt: MIC_CYT,
     lwM: W * MIC_MEMBRANE_LW * w, lwI: W * 0.6 * w, lwC: W * 0.5 * w, cilia: null };
   mc.life(lg);
-  if (MO.cilia === 'on' || (MO.cilia !== 'off' && J > 0.35)) lg.cilia = micCilia(mc, k, Q);
+  if (!mc.noCilia && (MO.cilia === 'on' || (MO.cilia !== 'off' && J > 0.35))) lg.cilia = micCilia(mc, k, Q);
   c.globalAlpha = 1;
   c.fillStyle = BG; c.beginPath(); micBlobPath(c, x, y, f, rot); c.fill();
   c.fillStyle = MIC_CYT; c.fill();

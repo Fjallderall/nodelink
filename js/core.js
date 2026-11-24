@@ -150,7 +150,7 @@ const S = {
   chaos: { style: 'mixed', frames: false, links: false },   // geometrical schematics: glyph style, cartouche frames, connecting lines
   lightning: { glow: true, fill: true },            // lightning: halo round the bolts (screen/PNG); fill: branches fill the boundary
   arcane: { snap: false, wobble: 0, links: true, sats: true },          // arcane: circles snap to touch, hand-drawn wobble 0–100, script bands, satellites
-  micro: { veins: true, orgs: 100, cilia: 'auto', detail: true },       // microscope: slime veins, organism amount %, cilia, cell insides
+  micro: { specimen: 'organisms', veins: true, orgs: 100, cilia: 'auto', detail: true },   // microscope: specimen (organisms / blood / hyphae), slime veins, microorganism amount %, cilia, cell insides
   vine: { leaves: 100, flowers: 60, leaf: 'almond', bloom: 'mixed', tendrils: true, veins: true, season: 'summer' },   // vines: leaf amount %, tip flower chance %, leaf shape, flower style, tendrils, veins
   glass: { style: 'mosaic', set: 'jewel', light: true },   // cathedral glass: style, glass colour set, light & shading
   water: { meet: 'wave', spacing: 24, drops: 40 },   // water circles: where ripples meet (wave / stop / cross), ring spacing (world units), raindrops 0–100

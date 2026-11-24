@@ -41,7 +41,7 @@
         <option value="spiderweb">Spiderweb (Dew)</option>
         <option value="nebula">Space Nebula</option>
         <option value="lightning">Lightning (Lichtenberg)</option>
-        <option value="microscope">Microscope (Cells)</option>
+        <option value="microscope">Microscope</option>
         <option value="vine">Vines (Leaves &amp; Flowers)</option>
         <option value="glass">Cathedral Glass (Coloured)</option>
         <option value="water">Water Circles (Ripples)</option>
@@ -57,7 +57,7 @@
         <option value="spiderweb">Spiderweb (Dew)</option>
         <option value="nebula">Space Nebula</option>
         <option value="lightning">Lightning (Lichtenberg)</option>
-        <option value="microscope">Microscope (Cells)</option>
+        <option value="microscope">Microscope</option>
         <option value="vine">Vines (Leaves &amp; Flowers)</option>
         <option value="glass">Cathedral Glass (Coloured)</option>
         <option value="water">Water Circles (Ripples)</option>
@@ -122,16 +122,22 @@
       <div class="note">Snap: circles that nearly touch grow or shrink until their rims meet (and meet the outer ring inside a boundary). Wobble bends every line a little, like ink by hand; it also shows in cut files.</div>
     </div>
     <div class="cg" id="micro-cg">
-      <label class="check" title="Microscope: branching slime-mould veins between the cells"><input type="checkbox" id="micro-veins" checked> Slime-mould veins</label>
-      <label for="micro-orgs">Organisms <span class="val"><span id="v-micro-orgs">100</span>%</span></label>
-      <input type="range" id="micro-orgs" title="Microscope: how many small organisms float between the cells (0% = none)" min="0" max="200" step="10" value="100">
-      <label for="micro-cilia">Cilia</label>
-      <select id="micro-cilia" title="Microscope: the fine hairs round cells and organisms. With jitter: only when Jitter is above 35%">
+      <label for="micro-specimen">Specimen</label>
+      <select id="micro-specimen" title="Microscope: what is on the slide. Microorganisms: cells, slime-mould veins, bacteria, diatoms and amoebae. Blood cells: a smear of red blood cells with white blood cells (the nodes) and platelets. Hyphae: branching fungal threads that grow from the nodes">
+        <option value="organisms">Microorganisms</option>
+        <option value="blood">Blood cells</option>
+        <option value="hyphae">Hyphae</option>
+      </select>
+      <label class="check mic-org" title="Microorganisms: branching strands of a plasmodial slime mould between the cells"><input type="checkbox" id="micro-veins" checked> Slime-mould veins</label>
+      <label class="mic-org" for="micro-orgs">Microorganisms <span class="val"><span id="v-micro-orgs">100</span>%</span></label>
+      <input class="mic-org" type="range" id="micro-orgs" title="Microorganisms: how many bacteria, diatoms and amoebae float between the cells (0% = none)" min="0" max="200" step="10" value="100">
+      <label class="mic-org" for="micro-cilia">Cilia</label>
+      <select class="mic-org" id="micro-cilia" title="Microorganisms: the short, hair-like cilia round the cells. With jitter: only when Jitter is above 35%">
         <option value="auto">With jitter (above 35%)</option>
         <option value="on">Always</option>
         <option value="off">Never</option>
       </select>
-      <label class="check" title="Microscope: the nucleus and organelles inside each cell (with Blink, the nuclei are eyes)"><input type="checkbox" id="micro-detail" checked> Cell insides (nucleus, organelles)</label>
+      <label class="check mic-cells" title="Microorganisms and Blood cells: the nucleus and organelles inside each cell (with Blink, the nuclei are eyes)"><input type="checkbox" id="micro-detail" checked> Cell insides (nucleus, organelles)</label>
     </div>
     <div class="cg" id="vine-cg">
       <label for="vine-leaves">Leaves <span class="val"><span id="v-vine-leaves">100</span>%</span></label>
@@ -424,14 +430,14 @@
       <label class="chk" title="Fast drift: everything redraws every frame (PCB and foam re-route nervously)"><input type="checkbox" id="an-glitch"> Glitch</label>
       <label class="chk" title="Slow, calm change: the design dissolves from one drifted version into the next every few seconds (every mode), morphs fade in softly"><input type="checkbox" id="an-flow"> Flow</label>
       <label class="chk" title="Spiderweb: dew rolls down the threads and drips off"><input type="checkbox" id="an-dewroll"> Rolling dew</label>
-      <label class="chk" title="Microscope: the cell nuclei are eyes: each blinks now and then, and they look at the pointer"><input type="checkbox" id="an-blink"> Blink</label>
+      <label class="chk" title="Microscope (Microorganisms, Blood cells): the cell nuclei are eyes: each blinks now and then, and they look at the pointer"><input type="checkbox" id="an-blink"> Blink</label>
       <label class="chk" title="Vines and Spiderweb: a breeze moves through; tips, leaves and flowers sway, the web billows between its anchors, while the nodes stay put"><input type="checkbox" id="an-wind"> Wind</label>
       <label class="chk" title="Vines: flowers slowly open and close, each at its own pace; buds swell"><input type="checkbox" id="an-bloom"> Bloom</label>
       <label class="chk" title="Arcane: every ring of script and every inner figure turns on its own, neighbouring rings the other way; Spin turns the whole design"><input type="checkbox" id="an-rings"> Turning rings</label>
       <label class="chk" title="PCB, Synaptic Web, Geometrical Schematics, Constellation: bright pulses run along the lines, and a line's end flashes when one arrives"><input type="checkbox" id="an-current"> Current</label>
       <label class="chk" title="Constellation, Nebula: the stars flicker, each at its own rhythm, and now and then a shooting star crosses"><input type="checkbox" id="an-twinkle"> Twinkle</label>
       <label class="chk" title="Lightning: the discharge rests dimmed; bolts strike one after another, flash, and their branches crawl outward before the afterglow fades"><input type="checkbox" id="an-strikes"> Strikes</label>
-      <label class="chk" title="Microscope: the organisms swim, glide or jiggle, amoebae creep, cell membranes wobble and the cilia beat; the nuclei stay put (goes with Blink)"><input type="checkbox" id="an-life"> Life</label>
+      <label class="chk" title="Microscope: bacteria and diatoms swim, glide or jiggle, amoebae creep, cell membranes wobble and the cilia beat; the nuclei stay put (goes with Blink). Blood cells: only the white blood cells move; Hyphae: nothing"><input type="checkbox" id="an-life"> Life</label>
       <label class="chk" title="Cathedral Glass, Stained Glass: a band of sunlight sweeps across the window now and then, and every piece it passes lights up"><input type="checkbox" id="an-sun"> Sunlight</label>
       <label class="chk" title="Water Circles: the rings travel outward from the nodes and fade, and raindrops land now and then and send out their own rings"><input type="checkbox" id="an-ripples"> Ripples</label>
       <label class="chk" title="Vines: now and then a petal comes loose from a flower and drifts down, swaying and tumbling (screen down; with Wind it is blown along). Not in the cut or SVG exports"><input type="checkbox" id="an-petals"> Falling petals</label>
@@ -492,7 +498,7 @@
       <input type="range" id="an-skspd" min="0.25" max="3" step="0.25">
       <span id="an-skspd-v"></span>
     </div>
-    <div class="anim-speed" id="an-lfspd-row" title="Life: how fast the organisms swim and the cells wobble and beat">
+    <div class="anim-speed" id="an-lfspd-row" title="Life: how fast the microorganisms swim and the cells wobble and beat">
       <label for="an-lfspd">Life speed</label>
       <input type="range" id="an-lfspd" min="0.25" max="3" step="0.25">
       <span id="an-lfspd-v"></span>
@@ -697,6 +703,7 @@
 <script src="js/modes/lightning.js"></script>
 <script src="js/modes/nebula.js"></script>
 <script src="js/modes/microscope.js"></script>
+<script src="js/modes/specimens.js"></script>
 <script src="js/modes/spiderweb.js"></script>
 <script src="js/modes/vine.js"></script>
 <script src="js/display-list.js"></script>
