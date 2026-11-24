@@ -46,7 +46,7 @@ function animNow() { return ANIM.clock != null ? ANIM.clock : performance.now();
 // take over WARP_DRAW_MAX ms to draw (or one over twice that), drift switches
 // to keyframes that are rasterised once and blitted (as ANIM.heavy does).
 const WARP_DRAW_MAX = 45;
-const WARP_WARM = 4;   // frames at the start of a run left out of that measurement
+const WARP_WARM = 4;   // frames at the start of a run, and after a design change, left out of that measurement
 // Adaptive cost (phones): a smooth mode whose recordings take over REC_SLOW ms
 // is bent between recordings like the jumpy modes; over REC_HEAVY ms, drift
 // takes rare keyframes instead of re-routing live (a recording blocks a frame)
@@ -339,6 +339,12 @@ function animRerecord(o, t, now) {
     now - ANIM.keyRecAt < Math.min(KEY_HOLD_MAX, ANIM.keyMs * KEY_HOLD_K);
   if (hold) { /* keep the current recording this frame */ }
   else if (key !== ANIM.curKey) {
+    // A real design change (not a forced re-record: curKey '' after a morph or
+    // after drift gave up): the cost is judged afresh. The new recording's
+    // first frames are slow anyway (nothing cached yet), so they don't count,
+    // and a design that got lighter gets live drift back (drawHeavy would
+    // otherwise stay on until the mode changed)
+    if (ANIM.curKey !== '') { ANIM.drawHeavy = false; ANIM.warpSlow = 0; ANIM.warpWarm = Math.max(ANIM.warpWarm, WARP_WARM); }
     ANIM.curBase = animNodes(t);
     ANIM.cur = animRecord(ANIM.curBase, seed, dewT);
     ANIM.keyRecAt = now; ANIM.keyMeasure = 2; ANIM.keyWorst = 0;   // measure the next 2 frame gaps
