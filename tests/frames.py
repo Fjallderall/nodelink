@@ -52,6 +52,9 @@ SCEN_EXTRA = {
     'vine-morph': "S.mode='vine'; Object.assign(ANIM.opts,{morph:true,drift:true,bloom:true});",
     'micro-life-sym': "S.mode='microscope'; S.sym={n:6,mirror:true}; S.micro={veins:true,orgs:100,cilia:'on',detail:true}; Object.assign(ANIM.opts,{life:true,blink:true,drift:true}); ANIM.gaze={x:-50,y:30};",
     'micro-hex-draw': "S.mode='microscope'; S.boundary={shape:'hexagon',size:300,border:'single'}; S.sigma=90; Object.assign(ANIM.opts,{draw:true,blink:true,life:true,lfSpd:3});",
+    'blood-life-blink': "S.mode='microscope'; S.micro={specimen:'blood',veins:true,orgs:100,cilia:'auto',detail:true}; Object.assign(ANIM.opts,{life:true,blink:true}); ANIM.gaze={x:-50,y:30};",   # Phase 44
+    'hyphae-life-blink': "S.mode='microscope'; S.micro={specimen:'hyphae',veins:true,orgs:100,cilia:'auto',detail:true}; Object.assign(ANIM.opts,{life:true,blink:true}); ANIM.gaze={x:-50,y:30};",
+    'hyphae-sym-draw': "S.mode='microscope'; S.micro={specimen:'hyphae',veins:true,orgs:100,cilia:'auto',detail:true}; S.sym={n:6,mirror:true}; S.boundary={shape:'hexagon',size:300,border:'single'}; Object.assign(ANIM.opts,{draw:true,life:true,blink:true,drift:true,lfSpd:3});",
     'micro-plain': "S.mode='microscope'; S.micro={veins:false,orgs:180,cilia:'off',detail:false}; Object.assign(ANIM.opts,{life:true,spin:true,hue:true});",
 }
 if len(sys.argv) > 3 and sys.argv[3] == 'extra': SCEN = SCEN_EXTRA

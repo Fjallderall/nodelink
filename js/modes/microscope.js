@@ -88,10 +88,10 @@ function micPolyline(c, pts) { pts.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.
 
 // ── Microscope: 1. cells, 2. organisms ──
 // Cells on the nodes (shape decided now, drawn last)
-function micCells(mc) {
+function micCells(mc, size = 1) {
   const R = mc.R;
   mc.cells = mc.nodes.map(n => {
-    const r = MIC_CELL_R * (n.size || 1) * (0.85 + R() * 0.3);
+    const r = MIC_CELL_R * size * (n.size || 1) * (0.85 + R() * 0.3);
     return { x: n.x, y: n.y, r, w: n.w || 1, f: micBlobFn(mc, r, 0.05 + mc.J * 0.12), rot: R() * MIC_TAU, s0: Math.floor(R() * 1e6) };
   });
 }

@@ -622,8 +622,8 @@ const MODE_NAME = m => { const o = document.querySelector(`#mode option[value="$
 // The Microscope's text depends on the specimen of the layer it is on
 const MICRO_INFO = {
   organisms: MODE_INFO.microscope,
-  blood: ['A blood smear under the microscope: a dense layer of red blood cells with white blood cells (the nodes) and a few platelets.', ['life', 'blink', 'drift']],
-  hyphae: ['Fungal hyphae under the microscope: branching, septate threads grow from the nodes and cross in layers, with soft out-of-focus threads behind.', ['draw', 'drift', 'flow']]
+  blood: ['A blood smear under the microscope: a dense layer of drifting red blood cells with white blood cells (the nodes) and a few platelets.', ['life', 'blink', 'drift']],
+  hyphae: ['Fungal hyphae under the microscope: branching, septate threads grow from a spore on every node and cross in layers, with soft out-of-focus threads behind.', ['life', 'blink', 'draw']]
 };
 const modeInfo = (m, layer) => m === 'microscope' ? MICRO_INFO[((layer === 2 ? S.layer.micro : S.micro) || {}).specimen] || MODE_INFO.microscope : MODE_INFO[m];
 function syncModeInfo() {
@@ -726,7 +726,7 @@ function randomizeAll() {
   d.nebula = { glow: chance(0.85) };
   d.lightning = { glow: chance(0.85), fill: chance(0.6) };
   d.arcane = { snap: chance(0.4), wobble: chance(0.3) ? ri(2, 7) * 10 : 0, links: chance(0.85), sats: chance(0.85) };
-  d.micro = { specimen: 'organisms', veins: chance(0.85), orgs: pickRandom([50, 100, 100, 150]), cilia: pickRandom(['auto', 'auto', 'on', 'off']), detail: chance(0.85) };
+  d.micro = { specimen: pickRandom(['organisms', 'blood', 'hyphae']), veins: chance(0.85), orgs: pickRandom([50, 100, 100, 150]), cilia: pickRandom(['auto', 'auto', 'on', 'off']), detail: chance(0.85) };
   d.chaos = { style: pickRandom(['mixed', 'pillar', 'classic']), frames: chance(0.4), links: chance(0.8) };
   d.stained = { ring: chance(0.7), ragged: chance(0.5) };
   d.vine = { leaves: pickRandom([60, 100, 100, 150]), flowers: pickRandom([30, 60, 60, 90]), leaf: pickRandom(['almond', 'almond', 'round', 'ivy', 'mixed']),

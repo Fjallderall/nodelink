@@ -6,7 +6,11 @@
 //              nodes are white blood cells (the Microscope cell, no cilia)
 //   hyphae     fungal hyphae: long, branching, septate tubes in layers, darker
 //              where they pile up, with soft out-of-focus threads behind; the
-//              nodes are where the colony's hyphae start (no cell is drawn)
+//              nodes are spores (a small Microscope cell, no cilia) the hyphae
+//              grow from
+// Life: red cells and platelets drift (one Life group each); every hypha with
+// its branches drifts as one; the white cells and spores wobble. Blink: the
+// nuclei of the white cells and spores (red cells and hyphae have none).
 // Both use the shared setup (micSetup) and helpers of microscope.js, and the
 // random stream mc.R in a fixed order, so a seed gives the same slide.
 // Used by: renderMicroscope (microscope.js), which calls micSpecimen.
@@ -21,7 +25,8 @@ const BLOOD_SPACING_BASE = 2.5, BLOOD_SPACING_PER_DENSITY = 0.15;   // grid step
 const BLOOD_JITTER = 0.35;                         // grid positions move up to this × the step
 const BLOOD_FLAT = 0.88;                           // shortest axis ÷ longest
 const BLOOD_CENTRE = 0.5, BLOOD_CENTRE_A = 0.5;    // paler centre: radius × and how much background it lets through
-const BLOOD_PLATELET_P = 0.05;                     // chance that a grid place holds platelets instead
+const BLOOD_PLATELET_P = 0.05;
+const HY_SPORE = 0.4;                              // spore size on a node: × the Microscope cell                     // chance that a grid place holds platelets instead
 
 // Hyphae
 const HY_BODY = 'rgba(214, 70, 84, 0.3)';          // tube body: where tubes cross it adds up
@@ -70,19 +75,24 @@ function micBlood(mc) {
   }
   reds.sort((a, b) => a.order - b.order);          // random stacking order
   c.lineJoin = 'round';
-  reds.forEach(o => {
+  const hs0 = mc.s % 1000000;                      // (Life groups take no random draws)
+  reds.forEach((o, i) => {
+    mc.life({ kind: 'rbc', x: o.x, y: o.y, r: BLOOD_R, ang: 0, hs: hs0 + i * 7919 });
     c.beginPath(); micEllipse(c, o.x, o.y, o.rx, o.ry, o.rot);
     c.fillStyle = BLOOD_FILL; c.fill();
     c.strokeStyle = BLOOD_EDGE; c.lineWidth = W * 0.9; c.stroke();
     c.beginPath(); micEllipse(c, o.x, o.y, o.rx * BLOOD_CENTRE, o.ry * BLOOD_CENTRE, o.rot);
     c.globalAlpha = BLOOD_CENTRE_A; c.fillStyle = BG; c.fill(); c.globalAlpha = 1;
     c.strokeStyle = BLOOD_PALE; c.lineWidth = W * 0.5; c.stroke();
+    mc.life(null);
   });
   c.fillStyle = BLOOD_PLT;
-  plts.forEach(p => {
+  plts.forEach((p, i) => {
+    mc.life({ kind: 'speck', x: p.x, y: p.y, r: 4, ang: 0, hs: hs0 + 500000 + i * 7919 });
     c.beginPath();
     for (let k = 0; k < 3; k++) micDot(c, p.x + (R() - 0.5) * 8, p.y + (R() - 0.5) * 8, 1.6 + R() * 1.4);
     c.fill();
+    mc.life(null);
   });
   mc.cells.forEach((k, ci) => micCell(mc, k, ci));
 }
@@ -93,10 +103,10 @@ function micBlood(mc) {
 function micHyphae(mc) {
   const { c, R, J, W } = mc, A = micArea(mc), pb = HY_BRANCH_P + HY_BRANCH_PER_DENSITY * mc.density;
   const curl = 0.18 + J * 0.5, w0 = HY_W * Math.max(0.6, Math.min(1.6, W));
-  const threads = [];
-  let points = 0;
+  const threads = [], hs0 = mc.s % 1000000;
+  let points = 0, tree = 0;                        // tree: the thread and its branches (they drift together)
   const grow = (x, y, ang, w, depth, steps, far) => {
-    const th = { pts: [{ x, y }], w, far };
+    const th = { pts: [{ x, y }], w, far, tree };
     threads.push(th);
     for (let s = 0; s < steps && points < HY_MAX_POINTS; s++) {
       ang += (R() - 0.5) * curl;
@@ -112,18 +122,31 @@ function micHyphae(mc) {
   // From every node: a tuft of threads, as many as the node is big
   mc.nodes.forEach(n => {
     const m = Math.max(2, Math.round((3 + mc.density * 0.5) * (n.size || 1)));
-    for (let k = 0; k < m; k++) grow(n.x, n.y, R() * MIC_TAU, w0 * (0.85 + R() * 0.3), 0, Math.round(A.rad * (0.5 + R() * 0.6) / HY_STEP), R() < HY_FAR_SHARE);
+    for (let k = 0; k < m; k++) { tree++; grow(n.x, n.y, R() * MIC_TAU, w0 * (0.85 + R() * 0.3), 0, Math.round(A.rad * (0.5 + R() * 0.6) / HY_STEP), R() < HY_FAR_SHARE); }
   });
   // Free threads crossing the whole slide, grown both ways from a point
   const free = Math.round(mc.density * 3 * (mc.RG ? mc.fill : 1));
   for (let k = 0; k < free; k++) {
     const a = R() * MIC_TAU, d = Math.sqrt(R()) * A.rad, ang = R() * MIC_TAU, w = w0 * (0.85 + R() * 0.3), far = R() < HY_FAR_SHARE, len = Math.round(A.rad * (0.5 + R() * 0.5) / HY_STEP);
     const x = A.x + Math.cos(a) * d, y = A.y + Math.sin(a) * d;
-    grow(x, y, ang, w, 0, len, far); grow(x, y, ang + Math.PI, w, 0, len, far);
+    tree++; grow(x, y, ang, w, 0, len, far); grow(x, y, ang + Math.PI, w, 0, len, far);   // both halves are one tree
   }
   c.lineCap = 'round'; c.lineJoin = 'round';
-  threads.filter(t => t.far && t.pts.length > 1).forEach(t => micHyphaFar(mc, t));
-  threads.filter(t => !t.far && t.pts.length > 1).forEach(t => micHypha(mc, t));
+  // Each tree is one Life group (threads of a tree are drawn one after another)
+  const drawTrees = (list, draw) => {
+    let cur = -1;
+    list.forEach(t => {
+      if (t.tree !== cur) { if (cur >= 0) mc.life(null); cur = t.tree; mc.life({ kind: 'hypha', x: t.pts[0].x, y: t.pts[0].y, r: 10, ang: 0, hs: hs0 + t.tree * 7919 }); }
+      draw(mc, t);
+    });
+    if (cur >= 0) mc.life(null);
+  };
+  drawTrees(threads.filter(t => t.far && t.pts.length > 1), micHyphaFar);
+  drawTrees(threads.filter(t => !t.far && t.pts.length > 1), micHypha);
+  // The spores the colony grows from, drawn last like all Microscope cells
+  micCells(mc, HY_SPORE);
+  mc.noCilia = true;
+  mc.cells.forEach((k, ci) => micCell(mc, k, ci));
 }
 
 // Out of focus: a wide, faint smear built from stacked strokes

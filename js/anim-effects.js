@@ -391,7 +391,7 @@ function drawPane(y, p, s, lm) {
 // still. Groups come from Rec.life; replayAnim moves and redraws them.
 const LIFE_MODES = ['microscope'];
 const LIFE_SWIM = { rod: [10, 22, 1], spiril: [14, 26, 1.3], diatomP: [3, 6, 0.7] };   // gliders: [speed min, max (units/s), loop size ×]
-const LIFE_WANDER = { coccus: [3, 1.3, 0.15], speck: [2.5, 1.8, 0], diatomC: [6, 0.25, 0.06], amoeba: [9, 0.12, 0] };   // [reach, rate rad/s, spin rad/s]
+const LIFE_WANDER = { coccus: [3, 1.3, 0.15], speck: [2.5, 1.8, 0], diatomC: [6, 0.25, 0.06], amoeba: [9, 0.12, 0], rbc: [4, 0.5, 0.1], hypha: [4, 0.45, 0] };   // [reach, rate rad/s, spin rad/s]
 const LIFE_WOBBLE = [3, 4, 6];     // membrane wave numbers; each 0.6–1.4% of the radius
 const LIFE_BEAT = 6, LIFE_BEND = 0.45, LIFE_WAVE = 4;   // cilia: beat rad/s, extra bend, waves round the cell
 const lifeH = (g, j) => sr(g.hs * 0.37 + j * 101.3);
