@@ -241,7 +241,8 @@ details.group[open] > summary::before { transform: rotate(90deg); }
   border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
-.tgroup.push { margin-left: auto; border: none; background: transparent; box-shadow: none; overflow: visible; }
+/* The animation group sits on the right, beside Export, so its panel opens under it */
+.tgroup.right { margin-left: auto; }
 .tbtn { width: auto; margin: 0; border: none; border-radius: 0; border-right: 1px solid var(--sepia); background: transparent; white-space: nowrap; }
 .tgroup .tbtn:last-child { border-right: none; }
 /* Icon with a short name under it, at every width (full text in the tooltip) */
@@ -252,8 +253,8 @@ details.group[open] > summary::before { transform: rotate(90deg); }
 .tbtn:hover .tl { color: var(--bone); }
 .tbtn.toggle[aria-pressed="true"] { background: #2e3034; color: var(--gold); }
 .tbtn.toggle[aria-pressed="true"] .tl { color: var(--gold); }
-.tbtn.primary { margin: 0; border: 1px solid var(--gold); border-radius: 8px; padding: 8px 18px; font-size: 0.82rem; color: #111; }
-.tbtn.primary[aria-expanded="true"] { background: #fff; border-color: #fff; }
+#tb-export[aria-expanded="true"] { background: #2e3034; color: var(--gold); }
+#tb-export[aria-expanded="true"] .tl { color: var(--gold); }
 
 /* Floating panels share one look */
 .cut-panel, .anim-panel, .drawer {
@@ -281,7 +282,7 @@ details.group[open] > summary::before { transform: rotate(90deg); }
 .cut-chip .key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin: 0 4px 0 2px; vertical-align: -1px; }
 
 /* Animation panel, under the toolbar on the right */
-.anim-panel { position: absolute; top: calc(var(--tb-h, 42px) + 12px); right: 12px; z-index: 40; width: 260px; max-width: calc(100% - 24px); padding: 12px; }
+.anim-panel { position: absolute; top: calc(var(--tb-h, 42px) + 12px); right: var(--anim-r, 12px); z-index: 40; width: 260px; max-width: calc(100% - 24px); padding: 12px; }
 .anim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
 .anim-grid .chk { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 0.78rem; color: var(--bone); white-space: nowrap; }
 .anim-grid .chk input { width: auto; margin: 0; accent-color: var(--gold); }
@@ -362,7 +363,6 @@ body.ambient.hide-cursor #ambient-exit { opacity: 0; }
 @media (max-width: 768px), (orientation: landscape) and (max-height: 500px) {
   #tb-anim-set { display: none; }
 }
-}
 /* Menu folded away: the canvas takes the whole window */
 body.menu-min aside { display: none; }
 
@@ -380,8 +380,6 @@ body.menu-min aside { display: none; }
   #tb-menu { padding-left: 10px; padding-right: 10px; }
   #tb-anim-reset .tl { display: none; }
   #tb-anim-reset { min-width: 0; padding-left: 10px; padding-right: 10px; }
-  /* Export toolbar-sized, so Ambient fits beside Animate and the bar stays two rows */
-  .tbtn.primary { min-width: 0; padding: 6px 10px; font-size: 0.74rem; }
   /* While Stop shows, Ambient goes icon-only */
   body.anim-active #btn-ambient .tl { display: none; }
   body.anim-active #btn-ambient { min-width: 0; padding-left: 10px; padding-right: 10px; }
@@ -392,7 +390,6 @@ body.menu-min aside { display: none; }
   body.anim-active #tb-anim, body.anim-active #tb-anim-reset { min-width: 0; padding-left: 8px; padding-right: 8px; }
   #btn-ambient .tl { display: none; }
   #btn-ambient { min-width: 0; padding-left: 8px; padding-right: 8px; }
-  .tbtn.primary { padding-left: 7px; padding-right: 7px; }
 }
 /* Phone, portrait: panels open as bottom sheets over the sidebar, so the design stays in view */
 @media (max-width: 768px) {
@@ -453,7 +450,6 @@ body.menu-min aside { display: none; }
   .node-el { width: 30px; height: 30px; }
   .node-el::before { content: ''; position: absolute; inset: -7px; border-radius: 50%; }
   .tbtn { min-width: 44px; min-height: 44px; }
-  .tbtn.primary { min-height: 44px; }
   .zbtn { width: 44px; height: 44px; font-size: 1.25rem; background: rgba(23, 24, 26, 0.8); }
   button, select, input[type="text"].field, input[type="number"].field { min-height: 44px; }
   .seg button, #ed-layer button, #layer-swap { min-height: 40px; }

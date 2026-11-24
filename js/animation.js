@@ -849,11 +849,18 @@ function ambientCursor() {
   if (ANIM.ambient) ANIM.uiTimer = setTimeout(() => document.body.classList.add('hide-cursor'), 2000);
 }
 
-// Panels sit under the toolbar, which can wrap: keep --tb-h current
+// Panels sit under the toolbar, which can wrap: keep --tb-h current, and
+// --anim-r so the animation panel's right edge lines up with its button group
 function trackToolbar() {
   const tb = document.querySelector('.toolbar'), vp = document.getElementById('viewport');
+  const grp = document.getElementById('tb-anim-group');
   let h = -1;
+  const setR = () => {
+    const r = Math.max(12, Math.round(vp.getBoundingClientRect().right - grp.getBoundingClientRect().right));
+    vp.style.setProperty('--anim-r', r + 'px');
+  };
   const set = () => {
+    setR();
     if (tb.offsetHeight === h) return;
     const first = h < 0;
     h = tb.offsetHeight;
@@ -864,7 +871,7 @@ function trackToolbar() {
     if (!first) update();
   };
   set();
-  if (window.ResizeObserver) new ResizeObserver(set).observe(tb);
+  if (window.ResizeObserver) { const ro = new ResizeObserver(set); ro.observe(tb); ro.observe(grp); }
 }
 
 // Animation settings from saved UI state or a preset; unknown keys ignored,
