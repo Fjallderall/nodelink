@@ -583,6 +583,8 @@ function symDrawList(D, [ops, a, prog, wp, isL2, base], li) {
   const map = listMap(D, isL2), x = map === D.map ? D.c : paletteCtx(D.raw, map);
   const raw = x.canvas;
   let lidsDone = false;
+  // Ripples: a Water list is traced again every frame instead of replayed
+  if (ripplesOn(F, ops)) { symDrawRipples(D, x, ops, a, prog, wp); return; }
   // Blink on a faint layer (strength < 100%): its strokes are see-through,
   // so a lid painted over a nucleus would let the nucleus show through.
   // Draw the layer and its eyes into a buffer at the layer's strength,

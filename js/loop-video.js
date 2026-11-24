@@ -257,6 +257,8 @@ async function exportLoopVideo() {
   const o = ANIM.opts, keepSp = o.spSpd;
   if (o.spin) o.spSpd *= loopNudge(set.secs * o.speed * o.spSpd * SPIN_RATE, 2 * Math.PI / Math.max(1, S.sym.n));
   if (o.hue) ANIM.hueK = loopNudge(set.secs * o.speed * HUE_RATE, 360);
+  const keepRp = o.rpSpd;
+  if (o.ripples) o.rpSpd *= loopNudge(set.secs * o.speed * o.rpSpd / RP_PERIOD, 1);
   let now = 1000;
   const step = () => { now += dtMs; ANIM.clock = now; animStep(now); };
   const R = { W, H, view: loopView(W, H), map: makeColorMap(S.palette), out: document.createElement('canvas'), work: document.createElement('canvas'),
@@ -315,7 +317,7 @@ async function exportLoopVideo() {
   } finally {
     if (encoder.state !== 'closed') encoder.close();
     keep.forEach(b => { if (b && b.close) b.close(); });
-    ANIM.clock = null; o.spSpd = keepSp; ANIM.hueK = 1;
+    ANIM.clock = null; o.spSpd = keepSp; o.rpSpd = keepRp; ANIM.hueK = 1;
     LOOP.busy = false;
     loopDialog(false);
     // Back to the screen: the video's last frame, paused, or playing on from it

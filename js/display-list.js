@@ -49,6 +49,9 @@ Rec.prototype.markPetal = function (p) { const G = this.ops.grow; p.g = G && G.l
 // when in the year it falls (tf), the list's season at Play (y0) and its
 // autumn colour; g = its grow group, if drawn (null once fallen).
 Rec.prototype.markLeaf = function (l) { (this.ops.leafFall || (this.ops.leafFall = [])).push(l); };
+// Water Circles marks its setup (Ripples): ops.water = waterSetup's result
+// (sources: the nodes first, then the still design's raindrops). No R() draws.
+Rec.prototype.markWater = function (w) { this.ops.water = w; };
 Rec.prototype.markLead = function (l) { (this.ops.leads || (this.ops.leads = [])).push(l); };
 // Renderers mark what belongs to a node (Arcane constructs, Microscope cells,
 // Chaosgate main glyphs): own(i) until own(-1). A side list of (op index,

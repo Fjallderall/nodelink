@@ -23,6 +23,8 @@ SCEN = {
     # Pure black background (Phase 29): lead and other background-coloured masks go black too
     'glass-black': "S.mode='glass'; E.loopBg='black'; Object.assign(ANIM.opts,{sun:true,drift:true,hue:true});",
     'micro-black': "S.mode='microscope'; E.loopBg='black'; Object.assign(ANIM.opts,{life:true,blink:true});",
+    # Ripples (Phase 41): Steady nudged to whole rings, so the seam has no jump even before the crossfade
+    'water-ripples': "S.mode='water'; S.water={meet:'wave',spacing:24,drops:0}; Object.assign(ANIM.opts,{ripples:true,rpSpd:1.3});",
 }
 SECS = {'spin6': 15}   # Spin nudged to 1/6 turn (−17%), Colour cycle exactly one turn
 JS_RUN = """async ([secs, fps, size]) => {

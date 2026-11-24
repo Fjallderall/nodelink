@@ -11,12 +11,13 @@
 // Used by: draw()/renderDesign (ANIM.frame), the Animate controls, Ambient.
 const ANIM = {
   playing: false, ambient: false, live: false, frame: null,
-  opts: { draw: true, drift: true, glitch: false, flow: false, dewroll: true, blink: false, wind: false, bloom: false, rings: false, current: false, twinkle: false, strikes: false, life: false, sun: false, breathe: false, petals: false, seasons: false, morph: false, spin: false, pulse: false, hue: false, speed: 1, driftAmt: 1, glyphP: 3.5, dewSpd: 1, curSpd: 1, curRate: 1, twRate: 1, shoot: 1, skRate: 1, skSpd: 1, lfSpd: 1, sunSpd: 1, brSpd: 1, ptRate: 1, ssSpd: 1, spSpd: 1 },
+  opts: { draw: true, drift: true, glitch: false, flow: false, dewroll: true, blink: false, wind: false, bloom: false, rings: false, current: false, twinkle: false, strikes: false, life: false, sun: false, ripples: false, rpDrip: false, breathe: false, petals: false, seasons: false, morph: false, spin: false, pulse: false, hue: false, speed: 1, driftAmt: 1, glyphP: 3.5, dewSpd: 1, curSpd: 1, curRate: 1, twRate: 1, shoot: 1, skRate: 1, skSpd: 1, lfSpd: 1, sunSpd: 1, rpSpd: 1, brSpd: 1, ptRate: 1, ssSpd: 1, spSpd: 1 },
   frozen: false, frozenKey: '',   // paused: the last frame stays on screen until the design changes
   exporting: false,               // rendering the paused frame for an export (no blit cache)
   twTime: 0,                      // Twinkle clock (animation time × twinkle rate)
   lfTime: 0,                      // Life clock (animation time × life speed)
   sunTime: 0,                     // Sunlight clock (animation time × sun speed)
+  rpTime: 0,                      // Ripples clock (animation time × ripple speed), 0 at every fresh start
   spTime: 0,                      // Spin clock (animation time × spin speed)
   ssTime: 0,                      // Seasons clock (animation time × season speed; restarts at Play)
   brTime: 0, brAmp: 0,            // Breathing clock (× breath speed) and its fade in/out (0–1, BR_FADE s)
@@ -263,6 +264,7 @@ function animClocks(o, gap, dt) {
   ANIM.twTime += dt * o.twRate;
   ANIM.lfTime += dt * o.lfSpd;
   ANIM.sunTime += dt * o.sunSpd;
+  ANIM.rpTime += dt * o.rpSpd;
   ANIM.spTime += dt * o.spSpd;
   if (o.seasons) ANIM.ssTime += dt * o.ssSpd;
   ANIM.brTime += dt * o.brSpd;
@@ -439,6 +441,7 @@ function animFrame(o, t, { items, np, pulse }, windOn) {
     sk: o.strikes && modeOn(STRIKE_MODES) ? t : null,
     lt: o.life && modeOn(LIFE_MODES) ? ANIM.lfTime : null,
     su: o.sun && modeOn(SUN_MODES) ? ANIM.sunTime : null,
+    rp: o.ripples && modeOn(['water']) ? ANIM.rpTime : null, rpDrip: o.rpDrip,
     br, brA: smooth01(ANIM.brAmp),
     pt: o.petals && modeOn(PETAL_MODES) ? t : null, ptWind: windOn,
     ys: o.seasons && modeOn(['vine']) ? ANIM.ssTime / SEASON_S : null
@@ -556,6 +559,7 @@ function animFresh() {
   ANIM.tipsOff = false;
   ANIM.resFloor = 0; ANIM.resTry = null;        // whether lowering the resolution helps: judged afresh
   ANIM.ssTime = 0;                              // Seasons start from the design's own season
+  ANIM.rpTime = 0;                              // Ripples start from the still's rings
 }
 function setPlaying(on, freeze = true) {
   // Resume where it paused, when the design is still the one it paused on
@@ -605,14 +609,14 @@ const MODE_INFO = {
   microscope: ['Cells under a darkfield microscope: the nodes are large cells joined by slime-mould veins, with bacteria, diatoms and amoebae around them.', ['life', 'blink', 'drift']],
   vine: ['Climbing vines: stems wave between the nodes, shoots curl off them with leaves, buds, tendrils and flowers, and every node blooms.', ['wind', 'bloom', 'draw']],
   glass: ['Coloured cathedral glass in dark lead: a jewel mosaic, Tiffany flowers and leaves, or a rose window on every node.', ['sun', 'draw', 'drift']],
-  water: ['Ripples on water: rings spread from every node and from raindrops between them, and bend, stop or cross where they meet.', ['draw', 'spin', 'hue']]
+  water: ['Ripples on water: rings spread from every node and from raindrops between them, and bend, stop or cross where they meet.', ['ripples', 'draw', 'hue']]
 };
 // Sliders for one effect each: [key, element id, min, max]; shown only while
 // their effect is on (syncAnimRelevance)
 const ANIM_FX_SLIDERS = [['curSpd', 'curspd', 0.25, 3], ['curRate', 'currate', 0.25, 3], ['twRate', 'twrate', 0.25, 3],
-  ['shoot', 'shoot', 0, 3], ['skRate', 'skrate', 0.25, 3], ['skSpd', 'skspd', 0.25, 3], ['lfSpd', 'lfspd', 0.25, 3], ['sunSpd', 'sunspd', 0.25, 3], ['brSpd', 'brspd', 0.25, 3], ['ptRate', 'ptrate', 0.25, 3], ['ssSpd', 'ssspd', 0.25, 3], ['spSpd', 'spspd', 0.25, 4]];
-const ANIM_BOOLS = ['draw', 'drift', 'glitch', 'flow', 'dewroll', 'blink', 'wind', 'bloom', 'rings', 'current', 'twinkle', 'strikes', 'life', 'sun', 'breathe', 'petals', 'seasons', 'morph', 'spin', 'pulse', 'hue'];
-const ANIM_NAMES = { draw: 'Draw on', drift: 'Drift', glitch: 'Glitch', flow: 'Flow', dewroll: 'Rolling dew', blink: 'Blink', wind: 'Wind', bloom: 'Bloom', rings: 'Turning rings', current: 'Current', twinkle: 'Twinkle', strikes: 'Strikes', life: 'Life', sun: 'Sunlight', breathe: 'Breathing', petals: 'Falling petals', seasons: 'Seasons', morph: 'Morph seeds',
+  ['shoot', 'shoot', 0, 3], ['skRate', 'skrate', 0.25, 3], ['skSpd', 'skspd', 0.25, 3], ['lfSpd', 'lfspd', 0.25, 3], ['sunSpd', 'sunspd', 0.25, 3], ['rpSpd', 'rpspd', 0.25, 3], ['brSpd', 'brspd', 0.25, 3], ['ptRate', 'ptrate', 0.25, 3], ['ssSpd', 'ssspd', 0.25, 3], ['spSpd', 'spspd', 0.25, 4]];
+const ANIM_BOOLS = ['draw', 'drift', 'glitch', 'flow', 'dewroll', 'blink', 'wind', 'bloom', 'rings', 'current', 'twinkle', 'strikes', 'life', 'sun', 'ripples', 'breathe', 'petals', 'seasons', 'morph', 'spin', 'pulse', 'hue'];
+const ANIM_NAMES = { draw: 'Draw on', drift: 'Drift', glitch: 'Glitch', flow: 'Flow', dewroll: 'Rolling dew', blink: 'Blink', wind: 'Wind', bloom: 'Bloom', rings: 'Turning rings', current: 'Current', twinkle: 'Twinkle', strikes: 'Strikes', life: 'Life', sun: 'Sunlight', ripples: 'Ripples', breathe: 'Breathing', petals: 'Falling petals', seasons: 'Seasons', morph: 'Morph seeds',
   spin: 'Spin', pulse: 'Pulse', hue: 'Colour cycle', swap: 'Symbol swap (with Flow)' };
 const MODE_NAME = m => { const o = document.querySelector(`#mode option[value="${m}"]`); return o ? o.textContent : m; };
 function syncModeInfo() {
@@ -647,13 +651,14 @@ function syncAnimRelevance() {
   $('an-life').closest('label').classList.toggle('hidden', !modes.some(m => LIFE_MODES.includes(m)));
   $('an-sun').closest('label').classList.toggle('hidden', !modes.some(m => SUN_MODES.includes(m)));
   $('an-breathe').closest('label').classList.toggle('hidden', !modes.some(m => BREATHE_MODES.includes(m)));
+  $('an-ripples').closest('label').classList.toggle('hidden', !modes.includes('water'));
   $('an-petals').closest('label').classList.toggle('hidden', !modes.some(m => PETAL_MODES.includes(m)));
   $('an-seasons').closest('label').classList.toggle('hidden', !modes.includes('vine'));
   const fxOn = { cur: o.current && modes.some(m => CURRENT_MODES.includes(m)), tw: o.twinkle && modes.some(m => TWINKLE_MODES.includes(m)),
     sk: o.strikes && modes.some(m => STRIKE_MODES.includes(m)), lf: o.life && modes.some(m => LIFE_MODES.includes(m)),
-    su: o.sun && modes.some(m => SUN_MODES.includes(m)), br: o.breathe && modes.some(m => BREATHE_MODES.includes(m)),
+    su: o.sun && modes.some(m => SUN_MODES.includes(m)), rp: o.ripples && modes.includes('water'), br: o.breathe && modes.some(m => BREATHE_MODES.includes(m)),
     pt: o.petals && modes.some(m => PETAL_MODES.includes(m)), ss: o.seasons && modes.includes('vine'), sp: o.spin };
-  [['curspd', 'cur'], ['currate', 'cur'], ['twrate', 'tw'], ['shoot', 'tw'], ['skrate', 'sk'], ['skspd', 'sk'], ['lfspd', 'lf'], ['sunspd', 'su'], ['brspd', 'br'], ['ptrate', 'pt'], ['ssspd', 'ss'], ['spspd', 'sp']]
+  [['curspd', 'cur'], ['currate', 'cur'], ['twrate', 'tw'], ['shoot', 'tw'], ['skrate', 'sk'], ['skspd', 'sk'], ['lfspd', 'lf'], ['sunspd', 'su'], ['rpspd', 'rp'], ['rpstyle', 'rp'], ['brspd', 'br'], ['ptrate', 'pt'], ['ssspd', 'ss'], ['spspd', 'sp']]
     .forEach(([id, fx]) => $('an-' + id + '-row').classList.toggle('hidden', !fxOn[fx]));
   $('an-driftamt-row').classList.toggle('hidden', !moving);
   $('an-drift').closest('label').classList.toggle('hidden', o.flow && !o.glitch);   // Flow keyframes replace live drift
@@ -675,6 +680,7 @@ function syncAnimControls() {
     document.getElementById('an-' + id).value = o[k];
     document.getElementById('an-' + id + '-v').textContent = k === 'shoot' && o[k] === 0 ? 'off' : o[k].toFixed(2).replace(/0$/, '') + '×';
   });
+  document.getElementById('an-rpstyle').value = o.rpDrip ? 'drip' : 'steady';
   document.getElementById('an-dewspd').value = o.dewSpd;
   document.getElementById('an-dewspd-v').textContent = o.dewSpd.toFixed(2).replace(/0$/, '') + '×';
 }
@@ -870,6 +876,10 @@ function setupAnim() {
     if (k === 'morph' || k === 'draw') { ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (ANIM.opts.draw ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH); }
     saveUi({ anim: { ...ANIM.opts } });
   }));
+  $('an-rpstyle').addEventListener('change', e => {
+    ANIM.opts.rpDrip = e.target.value === 'drip';
+    saveUi({ anim: { ...ANIM.opts } });
+  });
   $('an-driftamt').addEventListener('input', e => {
     ANIM.opts.driftAmt = parseFloat(e.target.value);
     syncAnimControls();

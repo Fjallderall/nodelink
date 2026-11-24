@@ -24,6 +24,8 @@
                       cache, Symmetric replay, The whole design)
    anim-effects.js    Falling petals · Current · Twinkle · Sunlight · Life ·
                       Strikes · Blink lids
+   ripples.js         RIPPLES (Water Circles traced again per frame: steady
+                      rings, drips, rain)
    palette.js         PALETTE
    render-export.js   RENDERING · FRAMING · COLOUR TO ALPHA · PNG DPI ·
                       CUT-OUTLINE TRACER · EXPORTS (+ Cut worker) · CUT PREVIEW

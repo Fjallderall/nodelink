@@ -433,6 +433,7 @@
       <label class="chk" title="Lightning: the discharge rests dimmed; bolts strike one after another, flash, and their branches crawl outward before the afterglow fades"><input type="checkbox" id="an-strikes"> Strikes</label>
       <label class="chk" title="Microscope: the organisms swim, glide or jiggle, amoebae creep, cell membranes wobble and the cilia beat; the nuclei stay put (goes with Blink)"><input type="checkbox" id="an-life"> Life</label>
       <label class="chk" title="Cathedral Glass, Stained Glass: a band of sunlight sweeps across the window now and then, and every piece it passes lights up"><input type="checkbox" id="an-sun"> Sunlight</label>
+      <label class="chk" title="Water Circles: the rings travel outward from the nodes and fade, and raindrops land now and then and send out their own rings"><input type="checkbox" id="an-ripples"> Ripples</label>
       <label class="chk" title="Vines: now and then a petal comes loose from a flower and drifts down, swaying and tumbling (screen down; with Wind it is blown along). Not in the cut or SVG exports"><input type="checkbox" id="an-petals"> Falling petals</label>
       <label class="chk" title="Vines: the year turns: young leaves unfold in spring, flowers open and drop their petals, leaves turn and fall in autumn, winter is bare; it starts from the Season set in the Vines options"><input type="checkbox" id="an-seasons"> Seasons</label>
       <label class="chk" title="Foam: the bubbles swell and shrink in slow waves that spread out from the nodes; the threads between them stretch along"><input type="checkbox" id="an-breathe"> Breathing</label>
@@ -500,6 +501,15 @@
       <label for="an-sunspd">Sun speed</label>
       <input type="range" id="an-sunspd" min="0.25" max="3" step="0.25">
       <span id="an-sunspd-v"></span>
+    </div>
+    <div class="anim-speed" id="an-rpspd-row" title="Ripples: how fast the rings travel outward (1× = a new ring every 1.6 s)">
+      <label for="an-rpspd">Ripple speed</label>
+      <input type="range" id="an-rpspd" min="0.25" max="3" step="0.25">
+      <span id="an-rpspd-v"></span>
+    </div>
+    <div class="anim-speed" id="an-rpstyle-row" title="Ripples: Steady: every node sends rings out all the time, in step. Drips: each node drips now and then and sends out a short burst of rings">
+      <label for="an-rpstyle">Ripple style</label>
+      <select id="an-rpstyle"><option value="steady">Steady</option><option value="drip">Drips</option></select>
     </div>
     <div class="anim-speed" id="an-brspd-row" title="Breathing: how fast the waves of breath run out from the nodes">
       <label for="an-brspd">Breath speed</label>
@@ -692,6 +702,7 @@
 <script src="js/display-list.js"></script>
 <script src="js/compose.js"></script>
 <script src="js/anim-effects.js"></script>
+<script src="js/ripples.js"></script>
 <script src="js/palette.js"></script>
 <script src="js/render-export.js"></script>
 <script src="js/animation.js"></script>

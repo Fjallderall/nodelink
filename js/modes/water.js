@@ -38,6 +38,7 @@ function sanWater(v) {
 function renderWater(c, nodes, density, sigma, weight, seed) {
   if (!nodes.length) return;
   const w = waterSetup(nodes, density, sigma, weight, seed);
+  if (c.markWater) c.markWater(w);   // Ripples (js/ripples.js) redraws the water per frame from this
   c.strokeStyle = WATER_COL;
   c.lineCap = 'round';
   c.lineJoin = 'round';
@@ -73,7 +74,7 @@ function waterSetup(nodes, density, sigma, weight, seed) {
   const amp = sigma / 100 * lam * 0.7;
   const waves = [0, 1, 2].map(() => { const a = R() * Math.PI * 2; return { kx: Math.cos(a), ky: Math.sin(a), f: (0.6 + R() * 0.8) * 2 * Math.PI / 260, p: R() * Math.PI * 2 }; });
   const noise = amp ? (x, y) => amp / 3 * waves.reduce((t, q) => t + Math.sin((q.kx * x + q.ky * y) * q.f + q.p), 0) : () => 0;
-  return { o, src, lam, k: 2 * Math.PI / lam, noise, amp, weight, RG, sharp: WATER_SHARP };
+  return { o, src, lam, k: 2 * Math.PI / lam, noise, amp, weight, RG, sharp: WATER_SHARP, nn: nodes.length, nd, cx, cy, rad, seedI: Math.floor(seed * 1e6) };
 }
 
 // Fall-off of a source's waves: 1 at the source, 0 at its reach
