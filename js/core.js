@@ -27,7 +27,7 @@
    palette.js         PALETTE
    render-export.js   RENDERING · FRAMING · COLOUR TO ALPHA · PNG DPI ·
                       CUT-OUTLINE TRACER · EXPORTS (+ Cut worker) · CUT PREVIEW
-   animation.js       ANIMATION · Ambient (+ scenes)
+   animation.js       ANIMATION · Ambient
    loop-video.js      LOOP VIDEO (Export → Video: fixed-clock render, seam
                       crossfade, WebCodecs encoder, MP4 file)
    design-io.js       STATUS · DESIGN SNAPSHOTS, HISTORY, AUTOSAVE · FAVOURITES
@@ -52,7 +52,7 @@
                 Blink lids, The whole design) · PALETTE · RENDERING · FRAMING
    Export:      COLOUR TO ALPHA · PNG DPI · CUT-OUTLINE TRACER · EXPORTS
                 (+ Cut worker) · CUT PREVIEW
-   Live:        ANIMATION · Ambient (+ scenes) · LOOP VIDEO
+   Live:        ANIMATION · Ambient · LOOP VIDEO
    App:         STATUS · DESIGN SNAPSHOTS · FAVOURITES · NODE DOM · UPDATE ·
                 UI SYNC (+ Colour scheme UI) · SHELL · EVENTS · INIT
 

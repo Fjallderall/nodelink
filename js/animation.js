@@ -27,7 +27,7 @@ const ANIM = {
   time: 0, last: 0, raf: 0,
   keyRecAt: 0, keyMs: 0, keyMeasure: 0, keyWorst: 0,   // design-change re-records: when, their smoothed cost (ms), frames left to measure; see animTick
   cur: null, curKey: '', prev: null, fadeAt: 0, fadeDur: 1, prevKey: false, prevMorph: false, keyAt: 0, seedOff: 0, cycleAt: 0, nextMorph: 0, recAt: 0,
-  snapshot: null, uiTimer: 0, scenes: false, sceneAt: 0,
+  snapshot: null, uiTimer: 0,
   trail: [], curBase: null, prevBase: null, recMs: 0,
   dw: []   // per-node drift weight: 0 while dragged, eases back to 1 after
   , recEMA: 0, recMode: '',   // how long a recording takes (ms, smoothed) for the current mode
@@ -247,7 +247,7 @@ function animStep(now) {
   const dt = Math.min(DT_MAX, gap / 1000) * o.speed;
   ANIM.last = now;
   const t = (ANIM.time += dt);
-  animClocks(o, gap, dt, t);
+  animClocks(o, gap, dt);
   animMorph(o, t);
   const rec = animRerecord(o, t, now);
   const its = animItems(o, t, now, rec.warp);
@@ -257,8 +257,8 @@ function animStep(now) {
 }
 
 // The effect clocks, Breathing's fade, the blink clock, the gaze, the eased
-// drag weights and Ambient's next scene
-function animClocks(o, gap, dt, t) {
+// drag weights
+function animClocks(o, gap, dt) {
   ANIM.dewTime += dt * o.dewSpd;
   ANIM.twTime += dt * o.twRate;
   ANIM.lfTime += dt * o.lfSpd;
@@ -278,7 +278,6 @@ function animClocks(o, gap, dt, t) {
   // back in over DRAG_EASE s (real time), so it doesn't jump away when let go
   if (ANIM.dw.length !== S.nodes.length) ANIM.dw = S.nodes.map(() => 1);
   ANIM.dw.forEach((w, i) => { if (S.draggingNode !== i && w < 1) ANIM.dw[i] = Math.min(1, w + dt / o.speed / DRAG_EASE); });
-  if (ANIM.scenes && t - ANIM.sceneAt > AMBIENT_SCENE / Math.max(0.5, o.speed)) ambientScene();
 }
 
 // True when the main mode or Layer 2's mode is in the list
@@ -692,10 +691,7 @@ function ambientZoom() {
   S.pan = { x: snap.pan.x * f, y: snap.pan.y * f };
 }
 
-// ── Ambient scenes: the screensaver. Random designs on a snapshot of yours,
-// restored on exit with your animation options.
-const AMBIENT_SCENE = 45;          // seconds per scene
-// A random element of a (not seeded: for Randomise and Ambient scenes only)
+// A random element of a (not seeded: for Randomise only)
 const pickRandom = a => a[Math.floor(Math.random() * a.length)];
 // Randomise everything that makes up a design. Page, export and animation
 // settings stay. Weighted so most results are usable: plain settings are
@@ -749,47 +745,10 @@ function randomizeAll() {
   update();
 }
 
-function ambientScene(first = false) {
-  if (!first) {
-    S.mode = pickRandom(MODES);
-    S.density = 4 + Math.floor(Math.random() * 5);
-    S.sigma = Math.floor(Math.random() * 90);
-    S.weight = +(0.6 + Math.random() * 1.2).toFixed(1);
-    const n = pickRandom([1, 3, 4, 5, 6, 6, 7, 8, 8, 10, 12]);
-    S.sym = { n, mirror: n > 1 && Math.random() < 0.6 };
-    S.layer = { ...S.layer, mode: Math.random() < 0.35 ? pickRandom(MODES) : 'none' };
-  }
-  S.boundary = { ...S.boundary, shape: 'none' };
-  S.page = { ...S.page, preset: 'none' };
-  // Your colour scheme stays; flat 'own colours' become the scheme ramp,
-  // which suits glowing modes better
-  if (S.palette.mode === 'stencil') S.palette = { ...S.palette, mode: 'tint' };
-  S.seed = randomSeed();
-  if (S.layer.seed !== undefined) S.layer.seed = randomSeed();
-  S.nodes = varyNodeSizes(randomNodes(3 + Math.floor(Math.random() * 6)));
-  fitNodes();
-  sceneZoom();
-  ANIM.sceneAt = ANIM.time;
-  ANIM.prev = null; ANIM.curKey = '';
-  ANIM.cycleAt = ANIM.time;
-  ANIM.nextMorph = ANIM.time + (ANIM.opts.draw ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
-  // Fade through black between scenes (background colours differ per mode)
-  canvas.style.transition = 'none'; canvas.style.opacity = '0';
-  requestAnimationFrame(() => { canvas.style.transition = 'opacity 1.4s'; canvas.style.opacity = '1'; });
-}
-
-// The whole design (nodes within ~320, lines a little beyond) fits the
-// shorter side of the screen
-function sceneZoom() {
-  const w = window.innerWidth, h = window.innerHeight;
-  S.pan = { x: 0, y: 0 };
-  S.zoom = (0.5 * Math.min(w, h)) / (340 * w / CC);
-}
-
 function enterAmbient() {
   if (ANIM.ambient) return;
   ANIM.snapshot = { zoom: S.zoom, pan: { ...S.pan }, playing: ANIM.playing, frozen: ANIM.frozen, showNodes: S.showNodes };
-  ANIM.ambient = true; ANIM.scenes = false;
+  ANIM.ambient = true;
   if (CUT.on) setCutPreview(false);
   setDrawer(false);
   document.body.classList.add('ambient');
@@ -802,41 +761,16 @@ function enterAmbient() {
   ambientCursor();
 }
 
-function enterScenes() {
-  if (ANIM.ambient) return;
-  ANIM.snapshot = { zoom: S.zoom, pan: { ...S.pan }, playing: ANIM.playing, showNodes: S.showNodes,
-    design: getDesign(), opts: { ...ANIM.opts } };
-  ANIM.ambient = true; ANIM.scenes = true;
-  if (CUT.on) setCutPreview(false);
-  setDrawer(false);
-  document.body.classList.add('ambient');
-  Object.assign(ANIM.opts, { draw: true, drift: true, glitch: false, flow: false, morph: true, spin: true, pulse: true, hue: true });
-  S.showNodes = false;
-  const el = document.documentElement;
-  if (el.requestFullscreen) el.requestFullscreen().catch(() => { /* blocked in a frame: fill the window instead */ });
-  layoutCanvas();
-  ambientScene(true);
-  if (!ANIM.playing) setPlaying(true);
-  ambientCursor();
-}
-
 function exitAmbient() {
   if (!ANIM.ambient) return;
   const snap = ANIM.snapshot;
   ANIM.ambient = false;
-  if (ANIM.scenes) {
-    ANIM.scenes = false;
-    canvas.style.transition = ''; canvas.style.opacity = '';
-    applyDesign(snap.design);
-    Object.assign(ANIM.opts, snap.opts);
-    syncAnimControls();
-  }
   document.body.classList.remove('ambient', 'hide-cursor');
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
   S.zoom = snap.zoom; S.pan = snap.pan; S.showNodes = snap.showNodes;
   ANIM.snapshot = null;
-  // Back to how it was: paused on a frame, or still (scenes always come back still)
-  if (!snap.playing) setPlaying(false, !!snap.frozen && !snap.design);
+  // Back to how it was: paused on a frame, or still
+  if (!snap.playing) setPlaying(false, !!snap.frozen);
   else document.getElementById('anim-panel').classList.remove('hidden');
   layoutCanvas();
   syncControls();
@@ -926,7 +860,6 @@ function setupAnim() {
     const r = canvas.getBoundingClientRect();
     if (r.width && r.height) ANIM.pointer = { fx: (e.clientX - r.left) / r.width, fy: (e.clientY - r.top) / r.height };
   }, { passive: true });
-  $('btn-scenes').addEventListener('click', enterScenes);
   $('ambient-exit').addEventListener('click', exitAmbient);
   ANIM_BOOLS.forEach(k => $('an-' + k).addEventListener('change', e => {
     ANIM.opts[k] = e.target.checked;
@@ -965,5 +898,5 @@ function setupAnim() {
   ['mousemove', 'pointerdown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { if (ANIM.ambient) ambientCursor(); }, { passive: true }));
   // Leaving browser full screen (Esc) also leaves ambient mode
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && ANIM.ambient) exitAmbient(); });
-  window.addEventListener('resize', () => { if (ANIM.ambient) { layoutCanvas(); ANIM.scenes ? sceneZoom() : ambientZoom(); } });
+  window.addEventListener('resize', () => { if (ANIM.ambient) { layoutCanvas(); ambientZoom(); } });
 }

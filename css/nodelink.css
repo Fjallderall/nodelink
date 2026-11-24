@@ -290,8 +290,6 @@ details.group[open] > summary::before { transform: rotate(90deg); }
 .anim-speed label { margin: 0; }
 .anim-speed input { flex: 1; }
 .anim-speed span { font-size: 0.72rem; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
-#btn-scenes { margin: 0; width: 100%; }
-.amb-row { display: grid; grid-template-columns: 1fr; gap: 6px; }
 body.playing #node-layer { opacity: 0.35; transition: opacity 0.3s; }
 body.playing #node-layer:hover { opacity: 1; }
 #ambient-exit { display: none; }

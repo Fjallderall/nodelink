@@ -231,7 +231,7 @@ function varyNodeSizes(nodes) {
 // there is nothing to fit to, -2 when the middle itself is outside;
 // fitNodes.tooBig = nodes whose part is too big to fit anywhere (only the
 // node itself is pulled in then).
-// Used by: the Fit nodes button, Shuffle, Randomise, Ambient scenes.
+// Used by: the Fit nodes button, Shuffle, Randomise.
 const OWN_MODES = ['arcane', 'microscope', 'chaosgate', 'vine', 'glass'];
 const FIT_ROUNDS = 4;
 const FIT_NODE_K = 0.9;        // node centres stay inside 90% of the boundary
@@ -674,7 +674,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 39 (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 40 (24-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -766,7 +766,7 @@ function setupShell() {
     if (k === '?') { e.preventDefault(); setHelp(!HELP.on); return; }
     if (k === 'escape' && HELP.on) { setHelp(false); return; }
     if (k === 'escape') { if (ANIM.ambient) exitAmbient(); else if (!$('export-drawer').hidden) setDrawer(false); return; }
-    if (k === 'f') { e.preventDefault(); ANIM.ambient ? exitAmbient() : (e.shiftKey ? enterScenes() : enterAmbient()); return; }
+    if (k === 'f') { e.preventDefault(); ANIM.ambient ? exitAmbient() : enterAmbient(); return; }
     if (ANIM.ambient) return;                  // no editing keys on a background screen
     if (k === 'a') { e.preventDefault(); $(e.shiftKey ? 'tb-anim-reset' : 'tb-anim').click(); return; }
     if (k === 'm') { e.preventDefault(); setMoveDesign(!S.moveDesign); return; }
