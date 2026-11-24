@@ -2,14 +2,14 @@
 // The Microscope mode draws one of three specimens (S.micro.specimen):
 //   organisms  the original slide (cells, slime-mould veins, microorganisms): microscope.js
 //   blood      a blood smear: a dense, even layer of overlapping red blood cells
-//              (biconcave discs, paler in the middle) and a few platelets; the
-//              nodes are white blood cells (the Microscope cell, no cilia)
+//              (biconcave discs, paler in the middle) and a few platelets; no
+//              cell is drawn on the nodes
 //   hyphae     fungal hyphae: long, branching, septate tubes in layers, darker
 //              where they pile up, with soft out-of-focus threads behind; the
 //              nodes are where the colony's hyphae start (no cell is drawn)
 // Life: red cells and platelets drift (one Life group each); every hypha with
-// its branches drifts as one; the white cells wobble. Blink: the nuclei of the
-// white cells (red cells and hyphae have none, so Hyphae has nothing to blink).
+// its branches drifts as one. Neither specimen has nuclei, so there is nothing
+// to blink (Blink is only offered for Microorganisms).
 // Both use the shared setup (micSetup) and helpers of microscope.js, and the
 // random stream mc.R in a fixed order, so a seed gives the same slide.
 // Used by: renderMicroscope (microscope.js), which calls micSpecimen.
@@ -57,8 +57,6 @@ function micArea(mc) {
 
 function micBlood(mc) {
   const { c, R, W, BG } = mc;
-  micCells(mc);                                    // the white blood cells, drawn last like all Microscope cells
-  mc.noCilia = true;
   const A = micArea(mc);
   const step = BLOOD_R * Math.max(1.2, Math.min(2.2, BLOOD_SPACING_BASE - BLOOD_SPACING_PER_DENSITY * mc.density));
   const rows = Math.ceil(A.rad * 2 / (step * 0.87)), cols = Math.ceil(A.rad * 2 / step), reds = [], plts = [];
@@ -66,7 +64,7 @@ function micBlood(mc) {
     for (let i = 0; i <= cols; i++) {
       const jx = (R() - 0.5) * 2 * BLOOD_JITTER * step, jy = (R() - 0.5) * 2 * BLOOD_JITTER * step, kind = R(), rr = 0.85 + R() * 0.3, fl = BLOOD_FLAT + R() * (1 - BLOOD_FLAT), rot = R() * MIC_TAU, order = R();
       const p = { x: A.x - A.rad + i * step + (j % 2 ? step / 2 : 0) + jx, y: A.y - A.rad + j * step * 0.87 + jy };
-      if (!A.has(p) || mc.cells.some(q => Math.hypot(p.x - q.x, p.y - q.y) < q.r * 0.9)) continue;
+      if (!A.has(p)) continue;
       if (kind < BLOOD_PLATELET_P) plts.push(p);
       else reds.push({ x: p.x, y: p.y, rx: BLOOD_R * rr, ry: BLOOD_R * rr * fl, rot, order });
     }
@@ -92,7 +90,6 @@ function micBlood(mc) {
     c.fill();
     mc.life(null);
   });
-  mc.cells.forEach((k, ci) => micCell(mc, k, ci));
 }
 
 // ── Hyphae ──

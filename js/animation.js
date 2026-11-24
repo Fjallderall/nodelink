@@ -622,7 +622,7 @@ const MODE_NAME = m => { const o = document.querySelector(`#mode option[value="$
 // The Microscope's text depends on the specimen of the layer it is on
 const MICRO_INFO = {
   organisms: MODE_INFO.microscope,
-  blood: ['A blood smear under the microscope: a dense layer of drifting red blood cells with white blood cells (the nodes) and a few platelets.', ['life', 'blink', 'drift']],
+  blood: ['A blood smear under the microscope: a dense layer of drifting red blood cells and a few platelets.', ['life', 'draw', 'drift']],
   hyphae: ['Fungal hyphae under the microscope: branching, septate threads grow from the nodes and cross in layers, with soft out-of-focus threads behind.', ['life', 'draw', 'drift']]
 };
 const modeInfo = (m, layer) => m === 'microscope' ? MICRO_INFO[((layer === 2 ? S.layer.micro : S.micro) || {}).specimen] || MODE_INFO.microscope : MODE_INFO[m];
@@ -648,7 +648,9 @@ function syncAnimRelevance() {
   const dew = (S.mode === 'spiderweb' && S.dew > 0) || (S.layer.mode === 'spiderweb' && layerDew > 0);
   $('an-dewroll').closest('label').classList.toggle('hidden', !dew);
   $('an-dewspd-row').classList.toggle('hidden', !dew || !o.dewroll);
-  $('an-blink').closest('label').classList.toggle('hidden', !modes.includes('microscope'));
+  // Blink needs nuclei: only the Microorganisms specimen has them
+  const eyes = (S.mode === 'microscope' && (S.micro || {}).specimen === 'organisms') || (S.layer.mode === 'microscope' && ((S.layer.micro || S.micro || {}).specimen === 'organisms'));
+  $('an-blink').closest('label').classList.toggle('hidden', !eyes);
   $('an-wind').closest('label').classList.toggle('hidden', !modes.some(m => WIND_MODES.includes(m)));
   $('an-bloom').closest('label').classList.toggle('hidden', !modes.includes('vine'));
   $('an-rings').closest('label').classList.toggle('hidden', !modes.includes('arcane'));

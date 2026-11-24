@@ -425,7 +425,7 @@ function syncVals() {
   document.getElementById('v-micro-orgs').textContent = lget('micro').orgs;
   const sp = lget('micro').specimen;      // each specimen shows only the controls it uses
   document.querySelectorAll('#micro-cg .mic-org').forEach(el => el.classList.toggle('hidden', sp !== 'organisms'));
-  document.querySelectorAll('#micro-cg .mic-cells').forEach(el => el.classList.toggle('hidden', sp === 'hyphae'));
+  document.querySelectorAll('#micro-cg .mic-cells').forEach(el => el.classList.toggle('hidden', sp !== 'organisms'));
   document.getElementById('stain-cg').classList.toggle('hidden', m !== 'stained');
   document.getElementById('vine-cg').classList.toggle('hidden', m !== 'vine');
   document.getElementById('glass-cg').classList.toggle('hidden', m !== 'glass');
@@ -678,7 +678,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 44b (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 44c (24-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
