@@ -19,6 +19,8 @@ OPTS = {
                 for sg in [60, 0, 30, 100] for g in [True, False] for f in [False, True]],
   'constellation': [{'_top': {'sigma': sg, 'density': dn, 'weight': w}}
                     for sg in [60, 0, 35, 100] for dn in [6, 1, 3, 10] for w in [1, 0.4, 2.5]],
+  'arcane': [{'snap': sn, 'wobble': wb, 'links': lk, 'sats': st}
+             for wb in [0, 40, 100] for lk in [True, False] for st in [True, False] for sn in [False, True]],
 }
 JS = r"""
 async ([modes, OPTS]) => {

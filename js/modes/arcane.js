@@ -74,140 +74,181 @@ function wobbleCtx(c, amp, seed) {
 }
 
 const RING_V = 9;   // Turning rings: rim speed of a band, world units per second (× animation speed)
+const ARC_COL = '#e4ddd0', ARC_DIM = 'rgba(228, 221, 208, 0.55)';
+const ARC_TAU = Math.PI * 2;
+const ARC_KINDS = ['tri', 'hex', 'pent', 'sq', 'spokes', 'chords', 'nest'];
+
+// renderArcane: built in stages on one shared object ar (arcSetup). The
+// stages draw from ar.R in the same order as before the split, so a seed
+// gives the same circles. Each construct swaps in its own stream (ar.s).
 function renderArcane(c, nodes, density, sigma, weight, seed) {
   if (!nodes.length) return;
+  const ar = arcSetup(c, nodes, density, sigma, weight, seed);
+  arcLayout(ar);
+  if (ar.AO.snap && ar.K.length > 1) arcSnap(ar);
+  arcRings(ar);
+  arcSatPlan(ar);
+  arcGreatRing(ar);
+  ar.fillers.forEach((r, b) => arcFiller(ar, r, b));
+  arcCorners(ar);
+  if (ar.centre) arcCentre(ar);
+  const edges = arcTree(ar);
+  if (ar.AO.links !== false) edges.forEach(e => arcBand(ar, e));
+  if (ar.K.length >= 3) arcTriangles(ar);
+  arcConstructs(ar);
+  ar.sats.forEach((q, qi) => arcSatellite(ar, q, qi));
+}
+
+// Settings, the (wobbled) context, the random stream and stroke widths
+function arcSetup(c, nodes, density, sigma, weight, seed) {
   const AO = S.arcane || {};
   if (AO.wobble > 0) c = wobbleCtx(c, AO.wobble / 100 * 4.5, seed);
-  let s = Math.floor(seed * 1e6) * 31 + 9;
-  const R = () => sr(s++);
-  const TAU = Math.PI * 2;
-  const COL = '#e4ddd0', COL_DIM = 'rgba(228, 221, 208, 0.55)';
+  const ar = { c, nodes, density, sigma, seed, AO, s: Math.floor(seed * 1e6) * 31 + 9, W: weight, Wt: weight * 0.6 };
+  ar.R = () => sr(ar.s++);
   c.lineCap = 'round'; c.lineJoin = 'round';
-  // Turning rings: rad/s for a band at radius r (rim speed RING_V, varied per
-  // band by a hash, so no R() draws); dir +1 / -1
-  const turnW = (r, dir, h) => dir * RING_V / Math.max(10, r) * (0.75 + 0.5 * sr(h));
-  const W = weight, Wt = weight * 0.6;
-  const stroke = (col, w) => { c.strokeStyle = col; c.lineWidth = w; };
-  const circle = (x, y, r) => { c.moveTo(x + r, y); c.arc(x, y, r, 0, TAU); };
+  return ar;
+}
 
-  // Arcs of circle (x, y, r) outside the holes
-  const ringAround = (x, y, r, holes, skip) => {
-    const cuts = [];
-    for (const h of holes) {
-      if (h === skip) continue;
-      const d = Math.hypot(h.x - x, h.y - y);
-      if (d + r <= h.r) return;                                  // swallowed
-      if (d >= r + h.r || d + h.r <= r || d < 1e-6) continue;
-      const a0 = Math.atan2(h.y - y, h.x - x), al = Math.acos(Math.max(-1, Math.min(1, (r * r + d * d - h.r * h.r) / (2 * r * d))));
-      cuts.push([a0 - al, a0 + al]);
-    }
-    if (!cuts.length) { circle(x, y, r); return; }
-    // Normalise to [base, base + TAU) starting at the end of the first cut
-    const base = cuts[0][1];
-    const iv = cuts.map(([u, v]) => { let a = u - base; a = ((a % TAU) + TAU) % TAU; return [a, a + (v - u)]; }).sort((p, q) => p[0] - q[0]);
-    let t = 0;
-    const arc = (u, v) => { if (v - u > 1e-3) { c.moveTo(x + Math.cos(base + u) * r, y + Math.sin(base + u) * r); c.arc(x, y, r, base + u, base + v); } };
-    iv.forEach(([u, v]) => { if (u > t) arc(t, Math.min(u, TAU)); t = Math.max(t, v); });
-    if (t < TAU) arc(t, TAU);
-  };
-  // Straight segment minus the parts inside hole circles
-  const segAround = (ax, ay, bx, by, holes) => {
-    const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
-    if (L2 < 1e-9) return;
-    const cut = [];
-    for (const h of holes) {
-      const fx = ax - h.x, fy = ay - h.y, B = 2 * (fx * dx + fy * dy), C = fx * fx + fy * fy - h.r * h.r, D = B * B - 4 * L2 * C;
-      if (D <= 0) continue;
-      const q = Math.sqrt(D), t0 = (-B - q) / (2 * L2), t1 = (-B + q) / (2 * L2);
-      if (t1 > 0 && t0 < 1) cut.push([t0, t1]);
-    }
-    cut.sort((p, q) => p[0] - q[0]);
-    let t = 0;
-    const seg = (u, v) => { if (v - u > 1e-4) { c.moveTo(ax + dx * u, ay + dy * u); c.lineTo(ax + dx * v, ay + dy * v); } };
-    cut.forEach(([u, v]) => { seg(t, Math.min(u, 1)); t = Math.max(t, v); });
-    seg(t, 1);
-  };
-  const inHole = (x, y, holes) => holes.some(h => Math.hypot(x - h.x, y - h.y) < h.r);
-  // One script glyph at (x, y), u along tx/ty, size w × h
-  const glyphAt = (x, y, tx, ty, w, h, holes) => {
-    if (holes && inHole(x, y, holes)) return;
-    const nx = -ty, ny = tx;
-    arcScriptGlyph(R).forEach(pl => pl.forEach(([u, v], k) => {
-      const px = x + tx * u * w + nx * v * h, py = y + ty * u * w + ny * v * h;
-      if (k) c.lineTo(px, py); else c.moveTo(px, py);
-    }));
-  };
-  // Band contents between radii r0 < r1 around (x, y)
-  const ringScript = (x, y, r0, r1, holes) => {
-    const rm = (r0 + r1) / 2, h = (r1 - r0) * 0.62, n = Math.max(6, Math.floor(TAU * rm / (h * 1.25)));
-    const a0 = R() * TAU;
-    for (let k = 0; k < n; k++) {
-      if (R() < 0.1) continue;                                   // word gaps
-      const a = a0 + k / n * TAU;
-      glyphAt(x + Math.cos(a) * rm, y + Math.sin(a) * rm, -Math.sin(a), Math.cos(a), h * 0.8, h, holes);
-    }
-  };
-  const ringTicks = (x, y, r0, r1, step, holes) => {
-    const n = Math.max(12, Math.floor(TAU * r1 / step));
-    for (let k = 0; k < n; k++) {
-      const a = k / n * TAU, ca = Math.cos(a), sa = Math.sin(a);
-      if (holes && inHole(x + ca * (r0 + r1) / 2, y + sa * (r0 + r1) / 2, holes)) continue;
-      c.moveTo(x + ca * r0, y + sa * r0); c.lineTo(x + ca * r1, y + sa * r1);
-    }
-  };
-  const ringWave = (x, y, r0, r1) => {
-    const rm = (r0 + r1) / 2, amp = (r1 - r0) * 0.42, n = Math.max(24, Math.floor(TAU * rm / 3));
-    for (let k = 0; k <= n; k++) {
-      const a = k / n * TAU, rr = rm + amp * Math.sin(k * 1.9) * (0.35 + 0.65 * Math.abs(Math.sin(k * 0.21)));
-      const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
-      if (k) c.lineTo(px, py); else c.moveTo(px, py);
-    }
-  };
-  // Inscribed figure: polygon / star with small circles on its vertices
-  const figure = (x, y, r, kind, rot) => {
-    const vr = r * 0.16;
-    const poly = (n, step, ph, open) => {
-      const V = []; for (let k = 0; k < n; k++) { const a = ph + k / n * TAU; V.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); }
-      const holes = open ? [] : V.map(([vx, vy]) => ({ x: vx, y: vy, r: vr }));
-      for (let k = 0; k < n; k++) { const A = V[k], B = V[(k + step) % n]; segAround(A[0], A[1], B[0], B[1], holes); }
-      return V;
-    };
-    let V = [];
-    if (kind === 'tri') V = poly(3, 1, rot);
-    else if (kind === 'hex') { V = poly(3, 1, rot).concat(poly(3, 1, rot + Math.PI)); }
-    else if (kind === 'pent') V = poly(5, 2, rot);
-    else if (kind === 'sq') { poly(4, 1, rot, true); poly(4, 1, rot + Math.PI / 4, true); }
-    else if (kind === 'spokes') {
-      const n = 6 + Math.floor(R() * 7);
-      for (let k = 0; k < n; k++) { const a = rot + k / n * TAU; c.moveTo(x + Math.cos(a) * r * 0.42, y + Math.sin(a) * r * 0.42); c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); }
-    } else if (kind === 'chords') {                              // crossing chords, like a hand-drawn star
-      const n = 5 + Math.floor(R() * 5), R0 = r / 0.84;
-      const hole = [{ x, y, r: r * 0.42 }];
-      for (let k = 0; k < n; k++) {
-        const a = R() * TAU, b = a + Math.PI * (0.55 + R() * 0.8);
-        segAround(x + Math.cos(a) * R0, y + Math.sin(a) * R0, x + Math.cos(b) * R0, y + Math.sin(b) * R0, hole);
-      }
-    } else if (kind === 'nest') {                                // triangle in triangle
-      V = poly(3, 1, rot);
-      const r2 = r * 0.5;
-      for (let k = 0; k < 3; k++) {
-        const a = rot + Math.PI + k / 3 * TAU, b = rot + Math.PI + (k + 1) / 3 * TAU;
-        c.moveTo(x + Math.cos(a) * r2, y + Math.sin(a) * r2); c.lineTo(x + Math.cos(b) * r2, y + Math.sin(b) * r2);
-      }
-    }
-    V.forEach(([vx, vy]) => circle(vx, vy, vr));
-  };
+// Turning rings: rad/s for a band at radius r (rim speed RING_V, varied per
+// band by a hash, so no R() draws); dir +1 / -1
+function arcTurnW(r, dir, h) { return dir * RING_V / Math.max(10, r) * (0.75 + 0.5 * sr(h)); }
+function arcStroke(ar, col, w) { ar.c.strokeStyle = col; ar.c.lineWidth = w; }
+function arcCircle(ar, x, y, r) { ar.c.moveTo(x + r, y); ar.c.arc(x, y, r, 0, ARC_TAU); }
+function arcInHole(x, y, holes) { return holes.some(h => Math.hypot(x - h.x, y - h.y) < h.r); }
 
-  // 1. Layout: constructs on the nodes, centre and great ring
-  // Jitter sets how much the circle sizes vary: 0 → all 66 × node size,
-  // 100 → 0.5× to 1.9× (one seeded value per node)
-  const J = Math.max(0, Math.min(1, sigma / 100));
-  const K = nodes.map(n => ({ x: n.x, y: n.y, r: 66 * (n.size || 1) * Math.exp(J * (R() * 2 - 1) * 0.65), w: n.w || 1, gs: Math.floor(R() * 1e6) }));
+// ── Arcane: drawing helpers ──
+// Arcs of circle (x, y, r) outside the holes
+function arcRingAround(ar, x, y, r, holes) {
+  const c = ar.c, TAU = ARC_TAU, cuts = [];
+  for (const h of holes) {
+    const d = Math.hypot(h.x - x, h.y - y);
+    if (d + r <= h.r) return;                                  // swallowed
+    if (d >= r + h.r || d + h.r <= r || d < 1e-6) continue;
+    const a0 = Math.atan2(h.y - y, h.x - x), al = Math.acos(Math.max(-1, Math.min(1, (r * r + d * d - h.r * h.r) / (2 * r * d))));
+    cuts.push([a0 - al, a0 + al]);
+  }
+  if (!cuts.length) { arcCircle(ar, x, y, r); return; }
+  // Normalise to [base, base + TAU) starting at the end of the first cut
+  const base = cuts[0][1];
+  const iv = cuts.map(([u, v]) => { let a = u - base; a = ((a % TAU) + TAU) % TAU; return [a, a + (v - u)]; }).sort((p, q) => p[0] - q[0]);
+  let t = 0;
+  const arc = (u, v) => { if (v - u > 1e-3) { c.moveTo(x + Math.cos(base + u) * r, y + Math.sin(base + u) * r); c.arc(x, y, r, base + u, base + v); } };
+  iv.forEach(([u, v]) => { if (u > t) arc(t, Math.min(u, TAU)); t = Math.max(t, v); });
+  if (t < TAU) arc(t, TAU);
+}
+
+// Straight segment minus the parts inside hole circles
+function arcSegAround(ar, ax, ay, bx, by, holes) {
+  const c = ar.c, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+  if (L2 < 1e-9) return;
+  const cut = [];
+  for (const h of holes) {
+    const fx = ax - h.x, fy = ay - h.y, B = 2 * (fx * dx + fy * dy), C = fx * fx + fy * fy - h.r * h.r, D = B * B - 4 * L2 * C;
+    if (D <= 0) continue;
+    const q = Math.sqrt(D), t0 = (-B - q) / (2 * L2), t1 = (-B + q) / (2 * L2);
+    if (t1 > 0 && t0 < 1) cut.push([t0, t1]);
+  }
+  cut.sort((p, q) => p[0] - q[0]);
+  let t = 0;
+  const seg = (u, v) => { if (v - u > 1e-4) { c.moveTo(ax + dx * u, ay + dy * u); c.lineTo(ax + dx * v, ay + dy * v); } };
+  cut.forEach(([u, v]) => { seg(t, Math.min(u, 1)); t = Math.max(t, v); });
+  seg(t, 1);
+}
+
+// One script glyph at (x, y), u along tx/ty, size w × h
+function arcGlyphAt(ar, x, y, tx, ty, w, h, holes) {
+  if (holes && arcInHole(x, y, holes)) return;
+  const c = ar.c, nx = -ty, ny = tx;
+  arcScriptGlyph(ar.R).forEach(pl => pl.forEach(([u, v], k) => {
+    const px = x + tx * u * w + nx * v * h, py = y + ty * u * w + ny * v * h;
+    if (k) c.lineTo(px, py); else c.moveTo(px, py);
+  }));
+}
+
+// Band contents between radii r0 < r1 around (x, y): script, ticks or a wave
+function arcRingScript(ar, x, y, r0, r1, holes) {
+  const TAU = ARC_TAU, rm = (r0 + r1) / 2, h = (r1 - r0) * 0.62, n = Math.max(6, Math.floor(TAU * rm / (h * 1.25)));
+  const a0 = ar.R() * TAU;
+  for (let k = 0; k < n; k++) {
+    if (ar.R() < 0.1) continue;                                // word gaps
+    const a = a0 + k / n * TAU;
+    arcGlyphAt(ar, x + Math.cos(a) * rm, y + Math.sin(a) * rm, -Math.sin(a), Math.cos(a), h * 0.8, h, holes);
+  }
+}
+function arcRingTicks(ar, x, y, r0, r1, step, holes) {
+  const n = Math.max(12, Math.floor(ARC_TAU * r1 / step));
+  for (let k = 0; k < n; k++) {
+    const a = k / n * ARC_TAU, ca = Math.cos(a), sa = Math.sin(a);
+    if (holes && arcInHole(x + ca * (r0 + r1) / 2, y + sa * (r0 + r1) / 2, holes)) continue;
+    ar.c.moveTo(x + ca * r0, y + sa * r0); ar.c.lineTo(x + ca * r1, y + sa * r1);
+  }
+}
+function arcRingWave(ar, x, y, r0, r1) {
+  const rm = (r0 + r1) / 2, amp = (r1 - r0) * 0.42, n = Math.max(24, Math.floor(ARC_TAU * rm / 3));
+  for (let k = 0; k <= n; k++) {
+    const a = k / n * ARC_TAU, rr = rm + amp * Math.sin(k * 1.9) * (0.35 + 0.65 * Math.abs(Math.sin(k * 0.21)));
+    const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+    if (k) ar.c.lineTo(px, py); else ar.c.moveTo(px, py);
+  }
+}
+
+// Inscribed figure: polygon / star with small circles on its vertices
+function arcFigure(ar, x, y, r, kind, rot) {
+  const vr = r * 0.16;
+  const poly = (n, step, ph, open) => arcPoly(ar, x, y, r, vr, n, step, ph, open);
+  let V = [];
+  if (kind === 'tri') V = poly(3, 1, rot);
+  else if (kind === 'hex') { V = poly(3, 1, rot).concat(poly(3, 1, rot + Math.PI)); }
+  else if (kind === 'pent') V = poly(5, 2, rot);
+  else if (kind === 'sq') { poly(4, 1, rot, true); poly(4, 1, rot + Math.PI / 4, true); }
+  else if (kind === 'spokes') arcSpokes(ar, x, y, r, rot);
+  else if (kind === 'chords') arcChords(ar, x, y, r);
+  else if (kind === 'nest') { V = poly(3, 1, rot); arcNest(ar, x, y, r, rot); }
+  V.forEach(([vx, vy]) => arcCircle(ar, vx, vy, vr));
+}
+// Polygon / star through n points on radius r (every step-th joined); the
+// edges stop at the vertex circles (radius vr) unless open. Returns the points.
+function arcPoly(ar, x, y, r, vr, n, step, ph, open) {
+  const V = []; for (let k = 0; k < n; k++) { const a = ph + k / n * ARC_TAU; V.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); }
+  const holes = open ? [] : V.map(([vx, vy]) => ({ x: vx, y: vy, r: vr }));
+  for (let k = 0; k < n; k++) { const A = V[k], B = V[(k + step) % n]; arcSegAround(ar, A[0], A[1], B[0], B[1], holes); }
+  return V;
+}
+function arcSpokes(ar, x, y, r, rot) {
+  const n = 6 + Math.floor(ar.R() * 7);
+  for (let k = 0; k < n; k++) { const a = rot + k / n * ARC_TAU; ar.c.moveTo(x + Math.cos(a) * r * 0.42, y + Math.sin(a) * r * 0.42); ar.c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); }
+}
+// Crossing chords, like a hand-drawn star
+function arcChords(ar, x, y, r) {
+  const n = 5 + Math.floor(ar.R() * 5), R0 = r / 0.84;
+  const hole = [{ x, y, r: r * 0.42 }];
+  for (let k = 0; k < n; k++) {
+    const a = ar.R() * ARC_TAU, b = a + Math.PI * (0.55 + ar.R() * 0.8);
+    arcSegAround(ar, x + Math.cos(a) * R0, y + Math.sin(a) * R0, x + Math.cos(b) * R0, y + Math.sin(b) * R0, hole);
+  }
+}
+// The inner, upside-down triangle of 'nest' (triangle in triangle)
+function arcNest(ar, x, y, r, rot) {
+  const r2 = r * 0.5;
+  for (let k = 0; k < 3; k++) {
+    const a = rot + Math.PI + k / 3 * ARC_TAU, b = rot + Math.PI + (k + 1) / 3 * ARC_TAU;
+    ar.c.moveTo(x + Math.cos(a) * r2, y + Math.sin(a) * r2); ar.c.lineTo(x + Math.cos(b) * r2, y + Math.sin(b) * r2);
+  }
+}
+
+// ── Arcane: 1. layout ──
+// Constructs on the nodes (ar.K), the centre and, inside a boundary, bR: the
+// distance from the boundary's centre to its nearest edge. Jitter sets how
+// much the circle sizes vary: 0 → all 66 × node size, 100 → 0.5× to 1.9×
+// (one seeded value per node).
+function arcLayout(ar) {
+  const J = Math.max(0, Math.min(1, ar.sigma / 100)), R = ar.R;
+  const K = ar.K = ar.nodes.map(n => ({ x: n.x, y: n.y, r: 66 * (n.size || 1) * Math.exp(J * (R() * 2 - 1) * 0.65), w: n.w || 1, gs: Math.floor(R() * 1e6) }));
   let cx = 0, cy = 0;
   K.forEach(k => { cx += k.x; cy += k.y; }); cx /= K.length; cy /= K.length;
   // Inside a boundary the rings centre on the boundary and the outer ring
-  // sits just inside it (bR: distance from the centre to the nearest edge)
-  const RGa = fillRegion();
+  // sits just inside it
+  const RGa = ar.RGa = fillRegion();
   let bR = 0;
   if (RGa) {
     const P = RGa.pts;
@@ -215,238 +256,296 @@ function renderArcane(c, nodes, density, sigma, weight, seed) {
     bR = Infinity;
     P.forEach((p, i) => { const q = P[(i + 1) % P.length]; bR = Math.min(bR, segDist2(cx, cy, p.x, p.y, q.x, q.y)); });
   }
-  // Snap: circles whose rims nearly meet (gap or overlap under ~35% of the
-  // smaller radius) are resized until they just touch; closest pairs first,
-  // and a circle only moves once. Inside a boundary a circle can also snap
-  // to the inside of the outer ring. A circle lying just inside or just
-  // outside the great ring (the double ring through the constructs, radius
-  // Rg to Rg + 7; drawn when there are 2+ circles and Rg > 30) snaps to touch
-  // it; circles the ring runs through are left alone.
-  if (AO.snap && K.length > 1) {
-    const lock = K.map(() => false), MINR = 14;
-    const RgS = K.reduce((t, k) => t + Math.hypot(k.x - cx, k.y - cy), 0) / K.length;   // = Rg below (radii don't change it)
-    const ringGap = k => { const d = Math.hypot(k.x - cx, k.y - cy); return d < RgS + 3.5 ? { g: RgS - d - k.r, r: RgS - d } : { g: d - RgS - 7 - k.r, r: d - RgS - 7 }; };
-    const pairs = [];
-    for (let i = 0; i < K.length; i++) for (let j = i + 1; j < K.length; j++) {
-      const d = Math.hypot(K[i].x - K[j].x, K[i].y - K[j].y), g = d - K[i].r - K[j].r;
-      if (Math.abs(g) < 0.35 * Math.min(K[i].r, K[j].r)) pairs.push({ i, j, g, rel: Math.abs(g) / Math.min(K[i].r, K[j].r) });
-    }
-    if (RGa) K.forEach((k, i) => {
-      const g = (bR - 16) - Math.hypot(k.x - cx, k.y - cy) - k.r;
-      if (Math.abs(g) < 0.35 * k.r) pairs.push({ i, j: -1, g, rel: Math.abs(g) / k.r });
-    });
-    if (RgS > 30) K.forEach((k, i) => {
-      const { g } = ringGap(k);
-      if (Math.abs(g) < 0.35 * k.r) pairs.push({ i, j: -2, g, rel: Math.abs(g) / k.r });
-    });
-    pairs.sort((a, b) => a.rel - b.rel);
-    pairs.forEach(({ i, j }) => {
-      const A = K[i];
-      if (j === -1) { if (!lock[i]) { const r = (bR - 16) - Math.hypot(A.x - cx, A.y - cy); if (r > MINR) { A.r = r; lock[i] = true; } } return; }
-      if (j === -2) { if (!lock[i]) { const { r } = ringGap(A); if (r > MINR) { A.r = r; lock[i] = true; } } return; }
-      const B = K[j], d = Math.hypot(A.x - B.x, A.y - B.y), g = d - A.r - B.r;
-      if (lock[i] && lock[j]) return;
-      if (!lock[i] && !lock[j]) {
-        const ra = A.r + g * A.r / (A.r + B.r), rb = B.r + g * B.r / (A.r + B.r);
-        if (ra > MINR && rb > MINR) { A.r = ra; B.r = rb; lock[i] = lock[j] = true; }
-      } else {
-        const [F, fi] = lock[i] ? [B, j] : [A, i], other = lock[i] ? A : B, r = d - other.r;
-        if (r > MINR) { F.r = r; lock[fi] = true; }
-      }
-    });
+  ar.cx = cx; ar.cy = cy; ar.bR = bR;
+}
+
+// Snap: circles whose rims nearly meet (gap or overlap under ~35% of the
+// smaller radius) are resized until they just touch; closest pairs first,
+// and a circle only moves once. Inside a boundary a circle can also snap
+// to the inside of the outer ring. A circle lying just inside or just
+// outside the great ring (the double ring through the constructs, radius
+// Rg to Rg + 7; drawn when there are 2+ circles and Rg > 30) snaps to touch
+// it; circles the ring runs through are left alone.
+function arcSnap(ar) {
+  const { K, cx, cy } = ar, lock = K.map(() => false);
+  const RgS = K.reduce((t, k) => t + Math.hypot(k.x - cx, k.y - cy), 0) / K.length;   // = Rg (radii don't change it)
+  const ringGap = k => { const d = Math.hypot(k.x - cx, k.y - cy); return d < RgS + 3.5 ? { g: RgS - d - k.r, r: RgS - d } : { g: d - RgS - 7 - k.r, r: d - RgS - 7 }; };
+  arcSnapPairs(ar, RgS, ringGap).forEach(({ i, j }) => arcSnapOne(ar, lock, ringGap, i, j));
+}
+// Candidate pairs, closest first: j ≥ 0 another circle, -1 the boundary's
+// outer ring, -2 the great ring
+function arcSnapPairs(ar, RgS, ringGap) {
+  const { K, cx, cy, bR } = ar, pairs = [];
+  for (let i = 0; i < K.length; i++) for (let j = i + 1; j < K.length; j++) {
+    const d = Math.hypot(K[i].x - K[j].x, K[i].y - K[j].y), g = d - K[i].r - K[j].r;
+    if (Math.abs(g) < 0.35 * Math.min(K[i].r, K[j].r)) pairs.push({ i, j, g, rel: Math.abs(g) / Math.min(K[i].r, K[j].r) });
   }
+  if (ar.RGa) K.forEach((k, i) => {
+    const g = (bR - 16) - Math.hypot(k.x - cx, k.y - cy) - k.r;
+    if (Math.abs(g) < 0.35 * k.r) pairs.push({ i, j: -1, g, rel: Math.abs(g) / k.r });
+  });
+  if (RgS > 30) K.forEach((k, i) => {
+    const { g } = ringGap(k);
+    if (Math.abs(g) < 0.35 * k.r) pairs.push({ i, j: -2, g, rel: Math.abs(g) / k.r });
+  });
+  return pairs.sort((a, b) => a.rel - b.rel);
+}
+const ARC_MINR = 14;                     // Snap never shrinks a circle below this radius
+function arcSnapOne(ar, lock, ringGap, i, j) {
+  const { K, cx, cy, bR } = ar, A = K[i], MINR = ARC_MINR;
+  if (j === -1) { if (!lock[i]) { const r = (bR - 16) - Math.hypot(A.x - cx, A.y - cy); if (r > MINR) { A.r = r; lock[i] = true; } } return; }
+  if (j === -2) { if (!lock[i]) { const { r } = ringGap(A); if (r > MINR) { A.r = r; lock[i] = true; } } return; }
+  const B = K[j], d = Math.hypot(A.x - B.x, A.y - B.y), g = d - A.r - B.r;
+  if (lock[i] && lock[j]) return;
+  if (!lock[i] && !lock[j]) {
+    const ra = A.r + g * A.r / (A.r + B.r), rb = B.r + g * B.r / (A.r + B.r);
+    if (ra > MINR && rb > MINR) { A.r = ra; B.r = rb; lock[i] = lock[j] = true; }
+  } else {
+    const [F, fi] = lock[i] ? [B, j] : [A, i], other = lock[i] ? A : B, r = d - other.r;
+    if (r > MINR) { F.r = r; lock[fi] = true; }
+  }
+}
+
+// Ring radii: Rg (great ring, mean node distance), outerR, the filler bands
+// between the design and a boundary's outer ring (which moves out to the
+// edge), the construct holes and the free middle (Rin, centre)
+function arcRings(ar) {
+  const { K, cx, cy } = ar;
   const dist = K.map(k => Math.hypot(k.x - cx, k.y - cy));
-  const many = K.length > 1;
-  const Rg = many ? dist.reduce((a, b) => a + b, 0) / K.length : 0;
+  ar.many = K.length > 1;
+  ar.Rg = ar.many ? dist.reduce((a, b) => a + b, 0) / K.length : 0;
   let outerR = 0; K.forEach((k, i) => { outerR = Math.max(outerR, dist[i] + k.r); });
   outerR += 26;
-  // Boundary: the space between the design and the outer ring gets extra
-  // script bands; the outer ring (with its ticks) moves out to the edge
-  const fillers = [];
-  if (RGa) {
-    const target = bR - 16;
+  ar.fillers = [];
+  if (ar.RGa) {
+    const target = ar.bR - 16;
     if (target > outerR + 34) {
       const nb = Math.min(4, Math.floor((target - outerR) / 34));
-      for (let b = 1; b <= nb; b++) fillers.push(outerR + (target - outerR) * b / (nb + 1));
+      for (let b = 1; b <= nb; b++) ar.fillers.push(outerR + (target - outerR) * b / (nb + 1));
     }
     outerR = Math.max(40, target);
   }
-  const holes = K.map(k => ({ x: k.x, y: k.y, r: k.r }));
-  // Satellites on the great ring, away from the constructs
-  const sats = [];
-  const nSat = many && AO.sats !== false ? Math.round(density * 0.6) : 0;
+  ar.outerR = outerR;
+  ar.holes = K.map(k => ({ x: k.x, y: k.y, r: k.r }));
+  let Rin = Infinity;
+  K.forEach((k, i) => { Rin = Math.min(Rin, dist[i] - k.r - 14); });
+  ar.Rin = Rin;
+}
+
+// Satellites on the great ring, away from the constructs (the centre check
+// comes after them, as before the split; it draws nothing from R)
+function arcSatPlan(ar) {
+  const { cx, cy, Rg, holes, R } = ar, sats = ar.sats = [];
+  const nSat = ar.many && ar.AO.sats !== false ? Math.round(ar.density * 0.6) : 0;
   for (let t = 0; t < nSat * 6 && sats.length < nSat; t++) {
-    const a = R() * TAU, r = 12 + R() * 14, x = cx + Math.cos(a) * Rg, y = cy + Math.sin(a) * Rg;
+    const a = R() * ARC_TAU, r = 12 + R() * 14, x = cx + Math.cos(a) * Rg, y = cy + Math.sin(a) * Rg;
     if (holes.concat(sats).some(h => Math.hypot(h.x - x, h.y - y) < h.r + r + 8)) continue;
     sats.push({ x, y, r, kind: Math.floor(R() * 4), gs: Math.floor(R() * 1e6) });
   }
-  const allHoles = holes.concat(sats);
-  // Central figure if the middle is free
-  let Rin = Infinity;
-  K.forEach((k, i) => { Rin = Math.min(Rin, dist[i] - k.r - 14); });
-  const centre = many && Rin > 38;
+  ar.allHoles = holes.concat(sats);
+  ar.centre = ar.many && ar.Rin > 38;
+}
 
-  // 2. Great ring (double), hatched outer ring, central rings
-  stroke(COL, W);
+// ── Arcane: 2. great ring (double), hatched outer ring, fillers, centre ──
+function arcGreatRing(ar) {
+  const { c, cx, cy, Rg, outerR, allHoles, many, W } = ar;
+  arcStroke(ar, ARC_COL, W);
   c.beginPath();
-  if (many && Rg > 30) { ringAround(cx, cy, Rg, allHoles); ringAround(cx, cy, Rg + 7, allHoles); }
-  if (many) ringAround(cx, cy, outerR, allHoles);
+  if (many && Rg > 30) { arcRingAround(ar, cx, cy, Rg, allHoles); arcRingAround(ar, cx, cy, Rg + 7, allHoles); }
+  if (many) arcRingAround(ar, cx, cy, outerR, allHoles);
   c.stroke();
-  if (!many) { stroke(COL, W); c.beginPath(); circle(cx, cy, outerR); c.stroke(); }
-  {
-    stroke(COL_DIM, Wt); c.beginPath();
-    ringTicks(cx, cy, outerR + 4, outerR + 12, 3.2, allHoles);
-    c.stroke();
-  }
-  // Filler bands between the design and a boundary's outer ring: a ring with
-  // script just inside it (alternating with plain ticks)
-  fillers.forEach((r, b) => {
-    stroke(COL, W); c.beginPath(); ringAround(cx, cy, r, allHoles); c.stroke();
-    if (!(b % 2)) c.turn(cx, cy, turnW(r - 7, b % 4 ? 1 : -1, b * 3.1 + 0.4));
-    stroke(COL_DIM, Wt); c.beginPath();
-    if (b % 2) ringTicks(cx, cy, r - 10, r - 3, 4.5, allHoles);
-    else ringScript(cx, cy, r - 13, r - 2, allHoles);
-    c.stroke();
-    if (!(b % 2)) c.turn(null);
-  });
-  // Corners of a polygon boundary (outside the outer ring): a small sigil each
-  if (RGa && RGa.pts.length <= 12 && AO.sats !== false) {
-    let s2 = Math.floor(seed * 1e6) * 17 + 3;
-    RGa.pts.forEach(v => {
-      const dv = Math.hypot(v.x - cx, v.y - cy), gap = dv - bR;
-      if (gap < 28) return;
-      const r = Math.min(26, gap * 0.4), t = (bR + dv) / 2 / dv;
-      sats.push({ x: cx + (v.x - cx) * t, y: cy + (v.y - cy) * t, r, kind: Math.floor(sr(s2++) * 4), gs: Math.floor(sr(s2++) * 1e6) });
-    });
-  }
-  if (centre) {
-    const r1 = Rin, r0 = Rin * 0.86;
-    const hc = Math.floor(seed * 1e6) * 0.013 + 0.7;
-    stroke(COL, W); c.beginPath();
-    ringAround(cx, cy, r1, allHoles); ringAround(cx, cy, r0, allHoles);
-    // (same path as the rings: points take the transform when they are added)
-    c.turn(cx, cy, turnW(r0, -1, hc + 1));
-    figure(cx, cy, r0 * 0.92, density > 5 ? 'hex' : 'tri', -Math.PI / 2 + (R() - 0.5) * 0.6);
-    c.turn(null);
-    c.stroke();
-    c.turn(cx, cy, turnW((r0 + r1) / 2, 1, hc + 2));
-    stroke(COL_DIM, Wt); c.beginPath(); ringScript(cx, cy, r0, r1, allHoles); c.stroke();
-    c.turn(null);
-    if (density > 3 && Rin > 70) { c.turn(cx, cy, turnW(r0 * 0.3, 1, hc + 3)); stroke(COL, W); c.beginPath(); circle(cx, cy, r0 * 0.3); c.stroke(); glyphCycle(c, Math.floor(seed * 1e6) + 77, sd => drawChaosGlyph(c, cx, cy, r0 * 0.2, sd, W, sigma, COL)); c.turn(null); }
-  }
+  if (!many) { arcStroke(ar, ARC_COL, W); c.beginPath(); arcCircle(ar, cx, cy, outerR); c.stroke(); }
+  arcStroke(ar, ARC_DIM, ar.Wt); c.beginPath();
+  arcRingTicks(ar, cx, cy, outerR + 4, outerR + 12, 3.2, allHoles);
+  c.stroke();
+}
 
-  // 3. Links: script bands along a spanning tree, single lines for triangles
-  const edges = [];
-  if (many) {
-    const inT = [0], left = new Set(K.map((_, i) => i).slice(1));
-    while (left.size) {
-      let best = null;
-      inT.forEach(i => left.forEach(j => { const d = Math.hypot(K[i].x - K[j].x, K[i].y - K[j].y); if (!best || d < best.d) best = { i, j, d }; }));
-      edges.push(best); inT.push(best.j); left.delete(best.j);
-    }
-  }
-  if (AO.links !== false) edges.forEach(({ i, j }) => {
-    const A = K[i], B = K[j], d = Math.hypot(B.x - A.x, B.y - A.y);
-    if (d < A.r + B.r + 6) return;
-    const tx = (B.x - A.x) / d, ty = (B.y - A.y) / d, nx = -ty, ny = tx, bw = 7 + R() * 5;
-    stroke(COL, W); c.beginPath();
-    segAround(A.x + nx * bw, A.y + ny * bw, B.x + nx * bw, B.y + ny * bw, allHoles);
-    segAround(A.x - nx * bw, A.y - ny * bw, B.x - nx * bw, B.y - ny * bw, allHoles);
-    c.stroke();
-    stroke(COL_DIM, Wt); c.beginPath();
-    const h = bw * 1.25, n = Math.floor(d / (h * 1.2));
-    for (let k = 1; k < n; k++) { if (R() < 0.1) continue; const t = k / n; glyphAt(A.x + tx * d * t, A.y + ty * d * t, tx, ty, h * 0.8, h, allHoles); }
-    c.stroke();
-  });
-  if (K.length >= 3) {
-    const tris = [];
-    for (let a = 0; a < K.length; a++) for (let b = a + 1; b < K.length; b++) for (let e = b + 1; e < K.length; e++) {
-      const ar = Math.abs((K[b].x - K[a].x) * (K[e].y - K[a].y) - (K[e].x - K[a].x) * (K[b].y - K[a].y));
-      tris.push({ v: [a, b, e], ar });
-    }
-    tris.sort((p, q) => q.ar - p.ar);
-    const nT = Math.min(tris.length, density >= 6 && K.length >= 4 ? 2 : 1);
-    const used = [];
-    stroke(COL, W); c.beginPath();
-    for (const T of tris) {
-      if (used.length >= nT) break;
-      if (used.some(U => U.v.filter(v => T.v.includes(v)).length > 1)) continue;
-      used.push(T);
-      for (let m = 0; m < 3; m++) { const A = K[T.v[m]], B = K[T.v[(m + 1) % 3]]; segAround(A.x, A.y, B.x, B.y, allHoles); }
-    }
-    c.stroke();
-  }
+// Filler band b at radius r: a ring with script just inside it (alternating
+// with plain ticks); the script bands turn
+function arcFiller(ar, r, b) {
+  const { c, cx, cy, allHoles } = ar;
+  arcStroke(ar, ARC_COL, ar.W); c.beginPath(); arcRingAround(ar, cx, cy, r, allHoles); c.stroke();
+  if (!(b % 2)) c.turn(cx, cy, arcTurnW(r - 7, b % 4 ? 1 : -1, b * 3.1 + 0.4));
+  arcStroke(ar, ARC_DIM, ar.Wt); c.beginPath();
+  if (b % 2) arcRingTicks(ar, cx, cy, r - 10, r - 3, 4.5, allHoles);
+  else arcRingScript(ar, cx, cy, r - 13, r - 2, allHoles);
+  c.stroke();
+  if (!(b % 2)) c.turn(null);
+}
 
-  // 4. Constructs, bottom to top: larger circles lie under smaller ones (ties:
-  // the later node on top). Where a circle on top overlaps, the one under it is
-  // clipped away inside it (just outside its rim), so nothing shows through.
-  // Clip shape: a keyhole, a big disc round the covering circle with that
-  // circle cut out (one simple polygon, so canvas and the SVG builder agree).
+// Corners of a polygon boundary (outside the outer ring): a small sigil
+// each, added to the satellites (own stream s2, so ar.R is untouched)
+function arcCorners(ar) {
+  const { RGa, cx, cy, bR } = ar;
+  if (!(RGa && RGa.pts.length <= 12 && ar.AO.sats !== false)) return;
+  let s2 = Math.floor(ar.seed * 1e6) * 17 + 3;
+  RGa.pts.forEach(v => {
+    const dv = Math.hypot(v.x - cx, v.y - cy), gap = dv - bR;
+    if (gap < 28) return;
+    const r = Math.min(26, gap * 0.4), t = (bR + dv) / 2 / dv;
+    ar.sats.push({ x: cx + (v.x - cx) * t, y: cy + (v.y - cy) * t, r, kind: Math.floor(sr(s2++) * 4), gs: Math.floor(sr(s2++) * 1e6) });
+  });
+}
+
+// Central rings with a figure, a script band and (dense, roomy) a sigil
+function arcCentre(ar) {
+  const { c, cx, cy, Rin, allHoles, W, density, seed } = ar;
+  const r1 = Rin, r0 = Rin * 0.86;
+  const hc = Math.floor(seed * 1e6) * 0.013 + 0.7;
+  arcStroke(ar, ARC_COL, W); c.beginPath();
+  arcRingAround(ar, cx, cy, r1, allHoles); arcRingAround(ar, cx, cy, r0, allHoles);
+  // (same path as the rings: points take the transform when they are added)
+  c.turn(cx, cy, arcTurnW(r0, -1, hc + 1));
+  arcFigure(ar, cx, cy, r0 * 0.92, density > 5 ? 'hex' : 'tri', -Math.PI / 2 + (ar.R() - 0.5) * 0.6);
+  c.turn(null);
+  c.stroke();
+  c.turn(cx, cy, arcTurnW((r0 + r1) / 2, 1, hc + 2));
+  arcStroke(ar, ARC_DIM, ar.Wt); c.beginPath(); arcRingScript(ar, cx, cy, r0, r1, allHoles); c.stroke();
+  c.turn(null);
+  if (density > 3 && Rin > 70) {
+    c.turn(cx, cy, arcTurnW(r0 * 0.3, 1, hc + 3));
+    arcStroke(ar, ARC_COL, W); c.beginPath(); arcCircle(ar, cx, cy, r0 * 0.3); c.stroke();
+    glyphCycle(c, Math.floor(seed * 1e6) + 77, sd => drawChaosGlyph(c, cx, cy, r0 * 0.2, sd, W, ar.sigma, ARC_COL));
+    c.turn(null);
+  }
+}
+
+// ── Arcane: 3. links ──
+// Spanning tree over the constructs (Prim, nearest first): the edges
+function arcTree(ar) {
+  const { K } = ar, edges = [];
+  if (!ar.many) return edges;
+  const inT = [0], left = new Set(K.map((_, i) => i).slice(1));
+  while (left.size) {
+    let best = null;
+    inT.forEach(i => left.forEach(j => { const d = Math.hypot(K[i].x - K[j].x, K[i].y - K[j].y); if (!best || d < best.d) best = { i, j, d }; }));
+    edges.push(best); inT.push(best.j); left.delete(best.j);
+  }
+  return edges;
+}
+
+// A script band along a tree edge: two rails with glyphs between them
+function arcBand(ar, { i, j }) {
+  const { c, K, allHoles } = ar, A = K[i], B = K[j], d = Math.hypot(B.x - A.x, B.y - A.y);
+  if (d < A.r + B.r + 6) return;
+  const tx = (B.x - A.x) / d, ty = (B.y - A.y) / d, nx = -ty, ny = tx, bw = 7 + ar.R() * 5;
+  arcStroke(ar, ARC_COL, ar.W); c.beginPath();
+  arcSegAround(ar, A.x + nx * bw, A.y + ny * bw, B.x + nx * bw, B.y + ny * bw, allHoles);
+  arcSegAround(ar, A.x - nx * bw, A.y - ny * bw, B.x - nx * bw, B.y - ny * bw, allHoles);
+  c.stroke();
+  arcStroke(ar, ARC_DIM, ar.Wt); c.beginPath();
+  const h = bw * 1.25, n = Math.floor(d / (h * 1.2));
+  for (let k = 1; k < n; k++) { if (ar.R() < 0.1) continue; const t = k / n; arcGlyphAt(ar, A.x + tx * d * t, A.y + ty * d * t, tx, ty, h * 0.8, h, allHoles); }
+  c.stroke();
+}
+
+// Single lines through the widest triples (1, or 2 when dense with 4+
+// nodes); two triangles share at most one corner
+function arcTriangles(ar) {
+  const { K } = ar, tris = [];
+  for (let a = 0; a < K.length; a++) for (let b = a + 1; b < K.length; b++) for (let e = b + 1; e < K.length; e++) {
+    const area = Math.abs((K[b].x - K[a].x) * (K[e].y - K[a].y) - (K[e].x - K[a].x) * (K[b].y - K[a].y));
+    tris.push({ v: [a, b, e], ar: area });
+  }
+  tris.sort((p, q) => q.ar - p.ar);
+  const nT = Math.min(tris.length, ar.density >= 6 && K.length >= 4 ? 2 : 1);
+  const used = [];
+  arcStroke(ar, ARC_COL, ar.W); ar.c.beginPath();
+  for (const T of tris) {
+    if (used.length >= nT) break;
+    if (used.some(U => U.v.filter(v => T.v.includes(v)).length > 1)) continue;
+    used.push(T);
+    for (let m = 0; m < 3; m++) { const A = K[T.v[m]], B = K[T.v[(m + 1) % 3]]; arcSegAround(ar, A.x, A.y, B.x, B.y, ar.allHoles); }
+  }
+  ar.c.stroke();
+}
+
+// ── Arcane: 4. constructs ──
+// Bottom to top: larger circles lie under smaller ones (ties: the later node
+// on top). Where a circle on top overlaps, the one under it is clipped away
+// inside it (just outside its rim), so nothing shows through.
+function arcConstructs(ar) {
+  const { c, K } = ar;
   const order = K.map((_, i) => i).sort((a, b) => K[b].r - K[a].r || a - b);
-  const keyhole = (C, k, gap) => {
-    const rc = C.r + gap, d = Math.hypot(k.x - C.x, k.y - C.y), Rb = d + k.r + rc + 40;
-    const th = d > 1e-6 ? Math.atan2(C.y - k.y, C.x - k.x) : 0, n = 72;   // slit points away from k
-    c.beginPath();
-    for (let m = 0; m <= n; m++) { const a = th + m / n * TAU; const px = C.x + Math.cos(a) * Rb, py = C.y + Math.sin(a) * Rb; if (m) c.lineTo(px, py); else c.moveTo(px, py); }
-    for (let m = 0; m <= n; m++) { const a = th - m / n * TAU; c.lineTo(C.x + Math.cos(a) * rc, C.y + Math.sin(a) * rc); }
-    c.closePath(); c.clip();
-  };
   order.forEach((i, z) => {
     const k = K[i];
     // (snapped circles that only touch keep both rims whole)
-    const covers = order.slice(z + 1).map(j => K[j]).filter(C => Math.hypot(C.x - k.x, C.y - k.y) < C.r + k.r + (AO.snap ? -0.5 : 3));
-    if (covers.length) { c.save(); covers.forEach(C => keyhole(C, k, 2.5 * W)); }
-    const keep = s; s = k.gs * 13 + 5;                         // own random stream: stable when the order changes
-    c.own(i); drawConstruct(k, i % 2 ? -1 : 1); c.own(-1);
-    s = keep;
+    const covers = order.slice(z + 1).map(j => K[j]).filter(C => Math.hypot(C.x - k.x, C.y - k.y) < C.r + k.r + (ar.AO.snap ? -0.5 : 3));
+    if (covers.length) { c.save(); covers.forEach(C => arcKeyhole(ar, C, k, 2.5 * ar.W)); }
+    const keep = ar.s; ar.s = k.gs * 13 + 5;                   // own random stream: stable when the order changes
+    c.own(i); arcConstruct(ar, k, i % 2 ? -1 : 1); c.own(-1);
+    ar.s = keep;
     if (covers.length) c.restore();
   });
-  function drawConstruct(k, dir) {
-    const bw = Math.max(8, k.r * (k.r > 120 ? 0.1 : 0.14));
-    const bands = k.r > 120 ? 3 : k.r > 70 ? 2 : 1;
-    let r = k.r;
-    stroke(COL, W * k.w); c.beginPath(); circle(k.x, k.y, r); c.stroke();
-    for (let b = 0; b < bands; b++) {
-      const type = Math.floor(R() * 4), r0 = r - bw;
-      stroke(COL, W * k.w); c.beginPath(); circle(k.x, k.y, r0); c.stroke();
-      c.turn(k.x, k.y, turnW((r0 + r) / 2, b % 2 ? -dir : dir, k.gs * 0.001 + b * 1.7));
-      stroke(COL_DIM, Wt * k.w); c.beginPath();
-      if (type === 0 || type === 3) ringScript(k.x, k.y, r0, r);
-      else if (type === 1) ringTicks(k.x, k.y, r0 + 1.5, r - 1.5, 3.4);
-      else ringWave(k.x, k.y, r0, r);
-      c.stroke();
-      c.turn(null);
-      r = r0 - (R() < 0.5 ? 0 : bw * 0.35);
-      if (r !== r0) { stroke(COL, W * k.w); c.beginPath(); circle(k.x, k.y, r); c.stroke(); }
-    }
-    const kinds = ['tri', 'hex', 'pent', 'sq', 'spokes', 'chords', 'nest'];
-    const kind = kinds[Math.floor(R() * kinds.length)];
-    c.turn(k.x, k.y, turnW(r * 0.84, bands % 2 ? -dir : dir, k.gs * 0.001 + 9.3));
-    stroke(COL, W * k.w); c.beginPath();
-    figure(k.x, k.y, r * 0.84, kind, -Math.PI / 2 + (R() < 0.5 ? 0 : Math.PI / (kind === 'pent' ? 5 : 3)));
-    const ri = r * (kind === 'spokes' ? 0.4 : kind === 'nest' ? 0.22 : 0.36);
-    circle(k.x, k.y, ri);
-    c.stroke();
-    glyphCycle(c, k.gs, sd => drawChaosGlyph(c, k.x, k.y, ri * 0.62, sd, W * k.w, sigma, COL));
-    c.turn(null);
-  }
+}
+// Clip shape: a keyhole, a big disc round the covering circle C with that
+// circle cut out (one simple polygon, so canvas and the SVG builder agree)
+function arcKeyhole(ar, C, k, gap) {
+  const c = ar.c, TAU = ARC_TAU;
+  const rc = C.r + gap, d = Math.hypot(k.x - C.x, k.y - C.y), Rb = d + k.r + rc + 40;
+  const th = d > 1e-6 ? Math.atan2(C.y - k.y, C.x - k.x) : 0, n = 72;   // slit points away from k
+  c.beginPath();
+  for (let m = 0; m <= n; m++) { const a = th + m / n * TAU; const px = C.x + Math.cos(a) * Rb, py = C.y + Math.sin(a) * Rb; if (m) c.lineTo(px, py); else c.moveTo(px, py); }
+  for (let m = 0; m <= n; m++) { const a = th - m / n * TAU; c.lineTo(C.x + Math.cos(a) * rc, C.y + Math.sin(a) * rc); }
+  c.closePath(); c.clip();
+}
 
-  // 5. Satellites: small circles with an element triangle or a sigil
-  sats.forEach((q, qi) => {
-    c.turn(q.x, q.y, turnW(q.r * 2.5, qi % 2 ? -1 : 1, q.gs * 0.001 + 5.5));
-    stroke(COL, W); c.beginPath(); circle(q.x, q.y, q.r);
-    if (q.kind < 2) {
-      const up = q.kind === 0 ? -1 : 1, rr = q.r * 0.62;
-      c.moveTo(q.x, q.y + up * rr); c.lineTo(q.x + rr * 0.87, q.y - up * rr * 0.5); c.lineTo(q.x - rr * 0.87, q.y - up * rr * 0.5); c.closePath();
-      if (R() < 0.5) { c.moveTo(q.x - rr * 0.6, q.y); c.lineTo(q.x + rr * 0.6, q.y); }
-      c.stroke();
-    } else if (q.kind === 2) {
-      circle(q.x, q.y, q.r * 0.78); c.stroke();
-      glyphCycle(c, q.gs, sd => drawChaosGlyph(c, q.x, q.y, q.r * 0.45, sd, Wt, sigma, COL));
-    } else {
-      c.stroke();
-      glyphCycle(c, q.gs, sd => drawChaosGlyph(c, q.x, q.y, q.r * 0.6, sd, Wt, sigma, COL));
-    }
-    c.turn(null);
-  });
+// One construct: rim, 1–3 bands (each turning), the inscribed figure with
+// an inner circle and a sigil. dir: the outer band's turning direction.
+function arcConstruct(ar, k, dir) {
+  const bw = Math.max(8, k.r * (k.r > 120 ? 0.1 : 0.14));
+  const bands = k.r > 120 ? 3 : k.r > 70 ? 2 : 1;
+  let r = k.r;
+  arcStroke(ar, ARC_COL, ar.W * k.w); ar.c.beginPath(); arcCircle(ar, k.x, k.y, r); ar.c.stroke();
+  for (let b = 0; b < bands; b++) r = arcConstructBand(ar, k, r, bw, b, dir);
+  arcConstructCore(ar, k, r, bands % 2 ? -dir : dir);
+}
+// Band b from radius r inwards (width bw); returns the next radius
+function arcConstructBand(ar, k, r, bw, b, dir) {
+  const c = ar.c, type = Math.floor(ar.R() * 4), r0 = r - bw;
+  arcStroke(ar, ARC_COL, ar.W * k.w); c.beginPath(); arcCircle(ar, k.x, k.y, r0); c.stroke();
+  c.turn(k.x, k.y, arcTurnW((r0 + r) / 2, b % 2 ? -dir : dir, k.gs * 0.001 + b * 1.7));
+  arcStroke(ar, ARC_DIM, ar.Wt * k.w); c.beginPath();
+  if (type === 0 || type === 3) arcRingScript(ar, k.x, k.y, r0, r);
+  else if (type === 1) arcRingTicks(ar, k.x, k.y, r0 + 1.5, r - 1.5, 3.4);
+  else arcRingWave(ar, k.x, k.y, r0, r);
+  c.stroke();
+  c.turn(null);
+  const rn = r0 - (ar.R() < 0.5 ? 0 : bw * 0.35);
+  if (rn !== r0) { arcStroke(ar, ARC_COL, ar.W * k.w); c.beginPath(); arcCircle(ar, k.x, k.y, rn); c.stroke(); }
+  return rn;
+}
+// Figure, inner circle and sigil inside radius r, turning in direction dir
+function arcConstructCore(ar, k, r, dir) {
+  const c = ar.c, kind = ARC_KINDS[Math.floor(ar.R() * ARC_KINDS.length)];
+  c.turn(k.x, k.y, arcTurnW(r * 0.84, dir, k.gs * 0.001 + 9.3));
+  arcStroke(ar, ARC_COL, ar.W * k.w); c.beginPath();
+  arcFigure(ar, k.x, k.y, r * 0.84, kind, -Math.PI / 2 + (ar.R() < 0.5 ? 0 : Math.PI / (kind === 'pent' ? 5 : 3)));
+  const ri = r * (kind === 'spokes' ? 0.4 : kind === 'nest' ? 0.22 : 0.36);
+  arcCircle(ar, k.x, k.y, ri);
+  c.stroke();
+  glyphCycle(c, k.gs, sd => drawChaosGlyph(c, k.x, k.y, ri * 0.62, sd, ar.W * k.w, ar.sigma, ARC_COL));
+  c.turn(null);
+}
+
+// ── Arcane: 5. satellites ──
+// A small circle with an element triangle (kind 0 / 1), a ringed sigil (2)
+// or a bare sigil (3)
+function arcSatellite(ar, q, qi) {
+  const { c, Wt } = ar;
+  c.turn(q.x, q.y, arcTurnW(q.r * 2.5, qi % 2 ? -1 : 1, q.gs * 0.001 + 5.5));
+  arcStroke(ar, ARC_COL, ar.W); c.beginPath(); arcCircle(ar, q.x, q.y, q.r);
+  if (q.kind < 2) {
+    const up = q.kind === 0 ? -1 : 1, rr = q.r * 0.62;
+    c.moveTo(q.x, q.y + up * rr); c.lineTo(q.x + rr * 0.87, q.y - up * rr * 0.5); c.lineTo(q.x - rr * 0.87, q.y - up * rr * 0.5); c.closePath();
+    if (ar.R() < 0.5) { c.moveTo(q.x - rr * 0.6, q.y); c.lineTo(q.x + rr * 0.6, q.y); }
+    c.stroke();
+  } else if (q.kind === 2) {
+    arcCircle(ar, q.x, q.y, q.r * 0.78); c.stroke();
+    glyphCycle(c, q.gs, sd => drawChaosGlyph(c, q.x, q.y, q.r * 0.45, sd, Wt, ar.sigma, ARC_COL));
+  } else {
+    c.stroke();
+    glyphCycle(c, q.gs, sd => drawChaosGlyph(c, q.x, q.y, q.r * 0.6, sd, Wt, ar.sigma, ARC_COL));
+  }
+  c.turn(null);
 }
