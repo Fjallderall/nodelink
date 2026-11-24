@@ -209,22 +209,38 @@ function arcSweep(a0, a1, ccw) {
 }
 function animTimes(ops) {
   if (ops._A) return ops._A;
-  if (ops._P) {
-    // A list split off another: pick the parent's times (-1 = state op)
-    const P = animTimes(ops._P.parent), idx = ops._P.idx, n = idx.length;
-    const A = { kind: new Uint8Array(n), ts: new Float64Array(n), te: new Float64Array(n), sx: new Float64Array(n), sy: new Float64Array(n),
-      ex: new Float64Array(n), ey: new Float64Array(n), pid: new Int32Array(n), nid: new Int32Array(n), pathT: P.pathT, pathNid: P.pathNid, max: P.max };
-    idx.forEach((j, k) => {
-      if (j < 0) return;
-      A.kind[k] = P.kind[j]; A.ts[k] = P.ts[j]; A.te[k] = P.te[j]; A.sx[k] = P.sx[j]; A.sy[k] = P.sy[j];
-      A.ex[k] = P.ex[j]; A.ey[k] = P.ey[j]; A.pid[k] = P.pid[j]; A.nid[k] = P.nid[j];
-    });
-    return (ops._A = A);
-  }
+  if (ops._P) return (ops._A = animTimesSplit(ops._P));
   const n = ops.length / 3;
-  const kind = new Uint8Array(n), ts = new Float64Array(n), te = new Float64Array(n);
-  const sx = new Float64Array(n), sy = new Float64Array(n), ex = new Float64Array(n), ey = new Float64Array(n);
-  // Paths: which ones get filled or clipped
+  const { pid, pFill, pClip, p } = animPathIds(ops, n);
+  const A = animTimesWalk(ops, n, pid, pFill, pClip, p);
+  // Pacing: the raw times are kept, the paced ones run 0–1
+  const { kind, ts, te, pathT } = A;
+  A.raw = { ts: ts.slice(), te: te.slice(), pathT: pathT.slice() };
+  const keys = [];
+  for (let k = 0; k < n; k++) if (kind[k] === 1 || kind[k] === 4) keys.push(te[k]); else if (kind[k] === 2) keys.push(ts[k]);
+  const warp = animPace(keys, A.max);
+  for (let k = 0; k < n; k++) { ts[k] = warp(ts[k]); te[k] = warp(te[k]); }
+  for (let q = 0; q < pathT.length; q++) pathT[q] = warp(pathT[q]);
+  A.max = 1;
+  return (ops._A = A);
+}
+
+// A list split off another (splitGlow): pick the parent's times (-1 = state op)
+function animTimesSplit(sp) {
+  const P = animTimes(sp.parent), idx = sp.idx, n = idx.length;
+  const A = { kind: new Uint8Array(n), ts: new Float64Array(n), te: new Float64Array(n), sx: new Float64Array(n), sy: new Float64Array(n),
+    ex: new Float64Array(n), ey: new Float64Array(n), pid: new Int32Array(n), nid: new Int32Array(n), pathT: P.pathT, pathNid: P.pathNid, max: P.max };
+  idx.forEach((j, k) => {
+    if (j < 0) return;
+    A.kind[k] = P.kind[j]; A.ts[k] = P.ts[j]; A.te[k] = P.te[j]; A.sx[k] = P.sx[j]; A.sy[k] = P.sy[j];
+    A.ex[k] = P.ex[j]; A.ey[k] = P.ey[j]; A.pid[k] = P.pid[j]; A.nid[k] = P.nid[j];
+  });
+  return A;
+}
+
+// Path ids per op (pid; a beginPath starts the next) and which paths get
+// filled (pFill) or clipped (pClip); p = the last id
+function animPathIds(ops, n) {
   const pid = new Int32Array(n), pFill = [], pClip = [];
   let p = 0;
   for (let k = 0; k < n; k++) {
@@ -236,6 +252,31 @@ function animTimes(ops) {
     }
     pid[k] = p;
   }
+  return { pid, pFill, pClip, p };
+}
+
+// A canvas transform op on the matrix M (with the save stack): returns the
+// new matrix, or null when m is not a transform op
+function animTimesMatrix(M, stack, m, a) {
+  switch (m) {
+    case 'save': stack.push(M.slice()); return M;
+    case 'restore': return stack.pop() || M;
+    case 'translate': M[4] += M[0] * a[0] + M[2] * a[1]; M[5] += M[1] * a[0] + M[3] * a[1]; return M;
+    case 'scale': M[0] *= a[0]; M[1] *= a[0]; M[2] *= a[1]; M[3] *= a[1]; return M;
+    case 'rotate': {
+      const co = Math.cos(a[0]), si = Math.sin(a[0]), [m0, m1, m2, m3] = M;
+      M[0] = m0 * co + m2 * si; M[1] = m1 * co + m3 * si; M[2] = m2 * co - m0 * si; M[3] = m3 * co - m1 * si;
+      return M;
+    }
+  }
+  return null;
+}
+
+// The pen walk: every op's kind, raw start and end times (world distance
+// from the nearest node, then along the path), local ends, and nodes
+function animTimesWalk(ops, n, pid, pFill, pClip, p) {
+  const kind = new Uint8Array(n), ts = new Float64Array(n), te = new Float64Array(n);
+  const sx = new Float64Array(n), sy = new Float64Array(n), ex = new Float64Array(n), ey = new Float64Array(n);
   const pathT = new Float64Array(p + 1).fill(Infinity), pathNid = new Int32Array(p + 1);
   const nid = new Int32Array(n);
   const nodes = S.nodes;
@@ -261,16 +302,9 @@ function animTimes(ops) {
     if (ops[k * 3] === 1) continue;                     // property: kind 0
     let path = true;
     sx[k] = cx; sy[k] = cy;
+    const M2 = animTimesMatrix(M, stack, m, a);
+    if (M2) { M = M2; continue; }
     switch (m) {
-      case 'save': stack.push(M.slice()); path = false; break;
-      case 'restore': M = stack.pop() || M; path = false; break;
-      case 'translate': M[4] += M[0] * a[0] + M[2] * a[1]; M[5] += M[1] * a[0] + M[3] * a[1]; path = false; break;
-      case 'scale': M[0] *= a[0]; M[1] *= a[0]; M[2] *= a[1]; M[3] *= a[1]; path = false; break;
-      case 'rotate': {
-        const co = Math.cos(a[0]), si = Math.sin(a[0]), [m0, m1, m2, m3] = M;
-        M[0] = m0 * co + m2 * si; M[1] = m1 * co + m3 * si; M[2] = m2 * co - m0 * si; M[3] = m3 * co - m1 * si;
-        path = false; break;
-      }
       case 'beginPath': has = false; path = false; break;
       case 'setLineDash': path = false; break;
       case 'stroke': case 'fill': case 'clip': kind[k] = 5; path = false; break;
@@ -319,13 +353,7 @@ function animTimes(ops) {
     if (kind[k] === 2 && ts[k] < pathT[P]) { pathT[P] = ts[k]; pathNid[P] = curN; }
     if (kind[k] !== 3) max = Math.max(max, kind[k] === 2 ? ts[k] : te[k]);
   }
-  const raw = { ts: ts.slice(), te: te.slice(), pathT: pathT.slice() };
-  const keys = [];
-  for (let k = 0; k < n; k++) if (kind[k] === 1 || kind[k] === 4) keys.push(te[k]); else if (kind[k] === 2) keys.push(ts[k]);
-  const warp = animPace(keys, max);
-  for (let k = 0; k < n; k++) { ts[k] = warp(ts[k]); te[k] = warp(te[k]); }
-  for (let q = 0; q < pathT.length; q++) pathT[q] = warp(pathT[q]);
-  return (ops._A = { kind, ts, te, sx, sy, ex, ey, pid, nid, pathT, pathNid, raw, max: 1 });
+  return { kind, ts, te, sx, sy, ex, ey, pid, nid, pathT, pathNid, max };
 }
 
 // Pacing: half geometric time, half rank (the share of ops due by then), so

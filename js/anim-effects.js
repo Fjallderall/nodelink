@@ -728,6 +728,53 @@ function blinkAmt(t, id) {
   }
   return v;
 }
+// Clips out what later cells cover (see markEye). Canvas: one even-odd clip
+// per cell (a box with the cell as a hole; one clip each, so two
+// overlapping covers don't cancel out). The SVG builder clips only to
+// unions of convex polygons and has no even-odd, so there the outside of a
+// cell is cut into slices: rays from the cell's centre through each outline
+// point, out past the eye (the outline is star-shaped round its centre, so
+// the slices don't overlap).
+function lidCovers(c, e, svg) {
+  const { x: ex, y: ey, R } = e;
+  const B = R * 2 + 10;
+  (e.cover || []).forEach(q => {
+    const P = q.pts;
+    c.beginPath();
+    if (svg) {
+      const far = Math.hypot(q.cx, q.cy) + B * 2, n = P.length / 2;
+      const out = i => { const dx = P[i * 2] - q.cx, dy = P[i * 2 + 1] - q.cy, d = Math.hypot(dx, dy) || 1; return [ex + q.cx + dx / d * far, ey + q.cy + dy / d * far]; };
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n, fi = out(i), fj = out(j);
+        c.moveTo(ex + P[i * 2], ey + P[i * 2 + 1]); c.lineTo(ex + P[j * 2], ey + P[j * 2 + 1]);
+        c.lineTo(fj[0], fj[1]); c.lineTo(fi[0], fi[1]); c.closePath();
+      }
+      c.clip();
+      return;
+    }
+    c.rect(ex - B, ey - B, B * 2, B * 2);
+    for (let i = 0; i < P.length; i += 2) i ? c.lineTo(ex + P[i], ey + P[i + 1]) : c.moveTo(ex + P[i], ey + P[i + 1]);
+    c.closePath(); c.clip('evenodd');
+  });
+}
+// Where the pupil goes: towards the pointer (fully over at 4 eye-radii
+// away), or its own spot when not looking (look and axis as in drawLid)
+function lidPupil(e, look, axis) {
+  const { x: ex, y: ey, R } = e;
+  let px = ex + (e.hx || 0), py = ey + (e.hy || 0);
+  if (look) {
+    const vx = look.x - ex, vy = look.y - ey, d = Math.hypot(vx, vy) || 1, m = e.reach * Math.min(1, d / (R * 4));
+    let ux = vx / d, uy = vy / d, bx = ex, by = ey;
+    if (axis) {
+      // On a wedge edge: the pupil sits on the edge line (each copy draws the
+      // half on its side) and slides along it
+      const t = ux * axis.x + uy * axis.y; ux = axis.x * t; uy = axis.y * t;
+      if (axis.x || axis.y) { const f = (ex - axis.ox) * axis.x + (ey - axis.oy) * axis.y; bx = axis.ox + axis.x * f; by = axis.oy + axis.y * f; }
+    }
+    px = bx + ux * m; py = by + uy * m;
+  }
+  return { px, py };
+}
 // A lid over one nucleus: the nucleus (inside its outline) is covered except
 // for an eye-shaped opening between two half-ellipses; shut, the upper lid
 // bows down past the middle (a closed eye) and meets the lower one
@@ -755,46 +802,8 @@ function drawLid(c, e, k, a, look = null, axis = null, erase = false) {
   c.save();
   c.globalAlpha = a;
   c.beginPath(); outline(); c.clip();
-  // Leave out what later cells cover (see markEye). Canvas: one even-odd clip
-  // per cell (a box with the cell as a hole; one clip each, so two
-  // overlapping covers don't cancel out). The SVG builder clips only to
-  // unions of convex polygons and has no even-odd, so there the outside of a
-  // cell is cut into slices: rays from the cell's centre through each outline
-  // point, out past the eye (the outline is star-shaped round its centre, so
-  // the slices don't overlap).
-  const B = R * 2 + 10;
-  (e.cover || []).forEach(q => {
-    const P = q.pts;
-    c.beginPath();
-    if (svg) {
-      const far = Math.hypot(q.cx, q.cy) + B * 2, n = P.length / 2;
-      const out = i => { const dx = P[i * 2] - q.cx, dy = P[i * 2 + 1] - q.cy, d = Math.hypot(dx, dy) || 1; return [ex + q.cx + dx / d * far, ey + q.cy + dy / d * far]; };
-      for (let i = 0; i < n; i++) {
-        const j = (i + 1) % n, fi = out(i), fj = out(j);
-        c.moveTo(ex + P[i * 2], ey + P[i * 2 + 1]); c.lineTo(ex + P[j * 2], ey + P[j * 2 + 1]);
-        c.lineTo(fj[0], fj[1]); c.lineTo(fi[0], fi[1]); c.closePath();
-      }
-      c.clip();
-      return;
-    }
-    c.rect(ex - B, ey - B, B * 2, B * 2);
-    for (let i = 0; i < P.length; i += 2) i ? c.lineTo(ex + P[i], ey + P[i + 1]) : c.moveTo(ex + P[i], ey + P[i + 1]);
-    c.closePath(); c.clip('evenodd');
-  });
-  // Where the pupil goes: towards the pointer (fully over at 4 eye-radii
-  // away), or its own spot when not looking
-  let px = ex + (e.hx || 0), py = ey + (e.hy || 0);
-  if (look) {
-    const vx = look.x - ex, vy = look.y - ey, d = Math.hypot(vx, vy) || 1, m = e.reach * Math.min(1, d / (R * 4));
-    let ux = vx / d, uy = vy / d, bx = ex, by = ey;
-    if (axis) {
-      // On a wedge edge: the pupil sits on the edge line (each copy draws the
-      // half on its side) and slides along it
-      const t = ux * axis.x + uy * axis.y; ux = axis.x * t; uy = axis.y * t;
-      if (axis.x || axis.y) { const f = (ex - axis.ox) * axis.x + (ey - axis.oy) * axis.y; bx = axis.ox + axis.x * f; by = axis.oy + axis.y * f; }
-    }
-    px = bx + ux * m; py = by + uy * m;
-  }
+  lidCovers(c, e, svg);
+  const { px, py } = lidPupil(e, look, axis);
   if (svg) {
     // SVG: cover the nucleus, then redraw its inside through the opening
     // (vertical strips between the two lid curves: convex, no even-odd)

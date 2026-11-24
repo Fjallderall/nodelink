@@ -247,6 +247,18 @@ function animStep(now) {
   const dt = Math.min(DT_MAX, gap / 1000) * o.speed;
   ANIM.last = now;
   const t = (ANIM.time += dt);
+  animClocks(o, gap, dt, t);
+  animMorph(o, t);
+  const rec = animRerecord(o, t, now);
+  const its = animItems(o, t, now, rec.warp);
+  const windOn = animWind(o, t, its.items);
+  const br = animFrame(o, t, its, windOn);
+  return { warp: rec.warp, windOn, br };
+}
+
+// The effect clocks, Breathing's fade, the blink clock, the gaze, the eased
+// drag weights and Ambient's next scene
+function animClocks(o, gap, dt, t) {
   ANIM.dewTime += dt * o.dewSpd;
   ANIM.twTime += dt * o.twRate;
   ANIM.lfTime += dt * o.lfSpd;
@@ -254,10 +266,8 @@ function animStep(now) {
   ANIM.spTime += dt * o.spSpd;
   if (o.seasons) ANIM.ssTime += dt * o.ssSpd;
   ANIM.brTime += dt * o.brSpd;
-  {
-    const on = o.breathe && (BREATHE_MODES.includes(S.mode) || BREATHE_MODES.includes(S.layer.mode)) && !ANIM.drawHeavy;
-    ANIM.brAmp = Math.max(0, Math.min(1, ANIM.brAmp + (on ? 1 : -1) * dt / BR_FADE));
-  }
+  const on = o.breathe && modeOn(BREATHE_MODES) && !ANIM.drawHeavy;
+  ANIM.brAmp = Math.max(0, Math.min(1, ANIM.brAmp + (on ? 1 : -1) * dt / BR_FADE));
   if (gap > 0) ANIM.blinkTime += Math.min(DT_MAX, gap / 1000);
   // The eyes follow the pointer with a little lag (GAZE_LAG)
   if (ANIM.gazeTarget) {
@@ -269,38 +279,47 @@ function animStep(now) {
   if (ANIM.dw.length !== S.nodes.length) ANIM.dw = S.nodes.map(() => 1);
   ANIM.dw.forEach((w, i) => { if (S.draggingNode !== i && w < 1) ANIM.dw[i] = Math.min(1, w + dt / o.speed / DRAG_EASE); });
   if (ANIM.scenes && t - ANIM.sceneAt > AMBIENT_SCENE / Math.max(0.5, o.speed)) ambientScene();
+}
 
-  // Morph: next seed, old design fades out under the new one
-  // With Flow the new seed fades in softly instead (draw-on progress kept)
-  // With Flow a keyframe crossfade is nearly always running; a morph waits for
-  // it to finish (≤ FLOW_KEY s), else the half-faded keyframe drops out (pop)
-  if (o.morph && t >= ANIM.nextMorph && !(o.flow && ANIM.prev && t - ANIM.fadeAt < ANIM.fadeDur)) {
-    if (ANIM.cur) {
-      ANIM.prev = ANIM.cur; ANIM.prevBase = ANIM.curBase; ANIM.fadeAt = t; ANIM.prevMorph = true;
-      if (o.flow) { ANIM.fadeDur = FLOW_MORPH; ANIM.prevKey = true; }
-      else { ANIM.fadeDur = o.draw ? ANIM_DRAW : ANIM_XFADE; ANIM.prevKey = false; }
-    }
-    ANIM.seedOff++;
-    if (!o.flow) ANIM.cycleAt = t;
-    ANIM.nextMorph = t + ANIM_MORPH;
-    ANIM.curKey = '';
+// True when the main mode or Layer 2's mode is in the list
+function modeOn(list) {
+  return list.includes(S.mode) || list.includes(S.layer.mode);
+}
+
+// Morph: next seed, old design fades out under the new one
+// With Flow the new seed fades in softly instead (draw-on progress kept)
+// With Flow a keyframe crossfade is nearly always running; a morph waits for
+// it to finish (≤ FLOW_KEY s), else the half-faded keyframe drops out (pop)
+function animMorph(o, t) {
+  if (!o.morph || t < ANIM.nextMorph || (o.flow && ANIM.prev && t - ANIM.fadeAt < ANIM.fadeDur)) return;
+  if (ANIM.cur) {
+    ANIM.prev = ANIM.cur; ANIM.prevBase = ANIM.curBase; ANIM.fadeAt = t; ANIM.prevMorph = true;
+    if (o.flow) { ANIM.fadeDur = FLOW_MORPH; ANIM.prevKey = true; }
+    else { ANIM.fadeDur = o.draw ? ANIM_DRAW : ANIM_XFADE; ANIM.prevKey = false; }
   }
-  // (Re)record when the design or the drift moved: smooth modes at most
-  // ~30×/s, jumpy modes as slow keyframes that crossfade
+  ANIM.seedOff++;
+  if (!o.flow) ANIM.cycleAt = t;
+  ANIM.nextMorph = t + ANIM_MORPH;
+  ANIM.curKey = '';
+}
+
+// (Re)record when the design or the drift moved: smooth modes at most
+// ~30×/s, jumpy modes as slow keyframes that crossfade. Returns { warp }.
+function animRerecord(o, t, now) {
   const seed = (S.seed + ANIM.seedOff * MORPH_SEED_STEP) % 1000000;
   const key = getDisplayList() && DL.key + '|' + seed;
   // Flow never redraws live: every mode takes keyframes and dissolves between
   // them (live re-layout shimmers in arcane, stained, spiderweb, nebula, and
   // constellation links pop). Rolling dew still moves on the keyframe's nodes.
   const flowKF = o.flow && !o.glitch;
-  const jumpy = flowKF || DRIFT_JUMPY.includes(S.mode) || (S.layer && DRIFT_JUMPY.includes(S.layer.mode)) || ANIM.slow;
+  const jumpyMode = modeOn(DRIFT_JUMPY);
+  const jumpy = flowKF || jumpyMode || ANIM.slow;
   // Bloom: the vine's flowers move, so the recording is redone live (its layout stays)
-  const bloomLive = (o.bloom || o.seasons) && (S.mode === 'vine' || S.layer.mode === 'vine');
+  const bloomLive = (o.bloom || o.seasons) && modeOn(['vine']);
   const dewT = o.dewroll && ((S.mode === 'spiderweb' && S.dew > 0) || (S.layer && S.layer.mode === 'spiderweb' && (S.layer.dew !== undefined ? S.layer.dew : S.dew) > 0)) ? ANIM.dewTime : null;
   // Drift on a jumpy mode (no Flow, no Glitch): re-routed live, bent by the warp
   // (a mode that is only slow, not jumpy, takes cheap cached keyframes instead:
   // bending its many recordings every frame costs more than it saves)
-  const jumpyMode = DRIFT_JUMPY.includes(S.mode) || (S.layer && DRIFT_JUMPY.includes(S.layer.mode));
   const warp = jumpyMode && o.drift && !o.flow && !o.glitch && !ANIM.heavy && !ANIM.drawHeavy;
   if (!warp) ANIM.trail = [];
   // A smooth mode that is only slow on this device (nebula, microscope on a
@@ -348,15 +367,19 @@ function animStep(now) {
     ANIM.cur = animRecord(ANIM.curBase, seed, dewT);
     ANIM.recAt = now; ANIM.keyAt = t;
   }
+  return { warp };
+}
 
-  // Draw on. With Morph (restarted per seed) or Flow the whole design draws in
-  // once. Otherwise it loops per node (np: progress per node, see NODE_DRAW).
+// The recordings to draw this frame, back to front: the fading previous one,
+// the drift trail (bent from where each was recorded) and the current one.
+// Draw on: with Morph (restarted per seed) or Flow the whole design draws in
+// once; otherwise it loops per node (np: progress per node, NODE_DRAW).
+// Returns { items, np, pulse }.
+function animItems(o, t, now, warp) {
   let prog = 1, np = null;
-  const alpha = 1;
   if (o.draw) {
     const ct = t - ANIM.cycleAt;
-    const ease = u => u * u * (3 - 2 * u);
-    if (o.morph || o.flow) prog = ease(Math.min(1, ct / ANIM_DRAW));
+    if (o.morph || o.flow) { const u = Math.min(1, ct / ANIM_DRAW); prog = u * u * (3 - 2 * u); }
     else {
       np = nodeDrawStep(S.nodes.length, ct);
       prog = 0;                                              // drawing (per node)
@@ -372,47 +395,60 @@ function animStep(now) {
     else if (ANIM.prevKey) {
       const e = f * f * (3 - 2 * f);
       curIn = Math.min(1, e * XF_K);
-      items.push({ dl: ANIM.prev, alpha: alpha * Math.min(1, (1 - e) * XF_K), prog });
+      items.push({ dl: ANIM.prev, alpha: Math.min(1, (1 - e) * XF_K), prog });
     } else items.push({ dl: ANIM.prev, alpha: 1 - f, prog: 1 });
   }
   const pulse = o.pulse ? 0.5 + 0.5 * Math.sin(t * PULSE_RATE) : 0;
-  const curA = alpha * curIn * (o.pulse ? 0.7 + 0.3 * pulse : 1);   // dims to 70% at the trough
-  if (warp) {
-    // Older recordings dissolve away underneath, each bent from where it was recorded
-    const nowN = animNodes(t);
-    if (items.length) items[0].warp = warpOffset(ANIM.prevBase || S.nodes, nowN);
-    const life = DRIFT_TRAIL * driftRecGap();
-    ANIM.trail = ANIM.trail.filter(tr => now - tr.at < life);
-    ANIM.trail.forEach(tr => {
-      const f = 1 - (now - tr.at) / life;
-      items.push({ dl: tr.dl, alpha: curA * TRAIL_ALPHA * f * f, prog, warp: warpOffset(tr.base, nowN) });
-    });
-    items.push({ dl: ANIM.cur, alpha: curA, prog, warp: warpOffset(ANIM.curBase, nowN) });
-  } else items.push({ dl: ANIM.cur, alpha: curA, prog });
-  // Wind: bends the vine layer of every item (each from the nodes it was recorded at)
-  const windOn = o.wind && (WIND_MODES.includes(S.mode) || WIND_MODES.includes(S.layer.mode)) && !ANIM.drawHeavy;
+  const curA = curIn * (o.pulse ? 0.7 + 0.3 * pulse : 1);   // dims to 70% at the trough
+  if (!warp) { items.push({ dl: ANIM.cur, alpha: curA, prog }); return { items, np, pulse }; }
+  // Older recordings dissolve away underneath, each bent from where it was recorded
+  const nowN = animNodes(t);
+  if (items.length) items[0].warp = warpOffset(ANIM.prevBase || S.nodes, nowN);
+  const life = DRIFT_TRAIL * driftRecGap();
+  ANIM.trail = ANIM.trail.filter(tr => now - tr.at < life);
+  ANIM.trail.forEach(tr => {
+    const f = 1 - (now - tr.at) / life;
+    items.push({ dl: tr.dl, alpha: curA * TRAIL_ALPHA * f * f, prog, warp: warpOffset(tr.base, nowN) });
+  });
+  items.push({ dl: ANIM.cur, alpha: curA, prog, warp: warpOffset(ANIM.curBase, nowN) });
+  return { items, np, pulse };
+}
+
+// Wind: bends the vine and web layers of every item (each from the nodes it
+// was recorded at). Returns whether Wind is on.
+function animWind(o, t, items) {
+  const windOn = o.wind && modeOn(WIND_MODES) && !ANIM.drawHeavy;
   if (windOn) items.forEach(it => {
     const base = it.dl === ANIM.cur ? ANIM.curBase || S.nodes : it.dl === ANIM.prev ? ANIM.prevBase || S.nodes : (ANIM.trail.find(tr => tr.dl === it.dl) || {}).base || S.nodes;
     const memo = {}, wf = m => m === 'vine' ? (memo.v = memo.v || windOffset(base, t)) : m === 'spiderweb' ? (memo.s = memo.s || webWindOffset(base, t)) : null;
     it.windM = wf(S.mode);
     it.windL = wf(S.layer.mode);
   });
-  const rt = o.rings && (S.mode === 'arcane' || S.layer.mode === 'arcane') ? t : 0;
-  const ct = o.current && (CURRENT_MODES.includes(S.mode) || CURRENT_MODES.includes(S.layer.mode)) ? t : null;
-  const twOn = o.twinkle && (TWINKLE_MODES.includes(S.mode) || TWINKLE_MODES.includes(S.layer.mode));
-  const tt = twOn ? ANIM.twTime : null, st = twOn ? t : null;
-  const sk = o.strikes && (STRIKE_MODES.includes(S.mode) || STRIKE_MODES.includes(S.layer.mode)) ? t : null;
-  const lt = o.life && (LIFE_MODES.includes(S.mode) || LIFE_MODES.includes(S.layer.mode)) ? ANIM.lfTime : null;
-  const su = o.sun && (SUN_MODES.includes(S.mode) || SUN_MODES.includes(S.layer.mode)) ? ANIM.sunTime : null;
-  const br = ANIM.brAmp > 0 ? ANIM.brTime : null, brA = smooth01(ANIM.brAmp);
-  const pt = o.petals && (PETAL_MODES.includes(S.mode) || PETAL_MODES.includes(S.layer.mode)) ? t : null;
-  const ys = o.seasons && (S.mode === 'vine' || S.layer.mode === 'vine') ? ANIM.ssTime / SEASON_S : null;
-  ANIM.frame = { items, lw: o.pulse ? 1 + PULSE_WIDTH * pulse : 1, spin: o.spin ? ANIM.spTime * SPIN_RATE : 0, np, rt, ct, tt, st, sk, lt, su, br, brA, pt, ptWind: windOn, ys };
+  return windOn;
+}
+
+// ANIM.frame (what replayAnim draws: the items and each effect's clock, null
+// when off), ANIM.hueFilter and ANIM.hpos. Returns Breathing's clock.
+function animFrame(o, t, { items, np, pulse }, windOn) {
+  const twOn = o.twinkle && modeOn(TWINKLE_MODES);
+  const br = ANIM.brAmp > 0 ? ANIM.brTime : null;
+  ANIM.frame = {
+    items, lw: o.pulse ? 1 + PULSE_WIDTH * pulse : 1, spin: o.spin ? ANIM.spTime * SPIN_RATE : 0, np,
+    rt: o.rings && modeOn(['arcane']) ? t : 0,
+    ct: o.current && modeOn(CURRENT_MODES) ? t : null,
+    tt: twOn ? ANIM.twTime : null, st: twOn ? t : null,
+    sk: o.strikes && modeOn(STRIKE_MODES) ? t : null,
+    lt: o.life && modeOn(LIFE_MODES) ? ANIM.lfTime : null,
+    su: o.sun && modeOn(SUN_MODES) ? ANIM.sunTime : null,
+    br, brA: smooth01(ANIM.brAmp),
+    pt: o.petals && modeOn(PETAL_MODES) ? t : null, ptWind: windOn,
+    ys: o.seasons && modeOn(['vine']) ? ANIM.ssTime / SEASON_S : null
+  };
   // sepia first so white lines take a colour too; then the hue turns
   ANIM.hueFilter = o.hue ? `sepia(0.8) saturate(3.5) hue-rotate(${(t * HUE_RATE * ANIM.hueK) % 360}deg)` : '';
   // Handles and markers follow the drifting nodes (spin is left out, as before)
   ANIM.hpos = (o.drift || o.flow || o.glitch) ? animNodes(t) : null;
-  return { warp, windOn, br };
+  return br;
 }
 
 // Frame rate: frames counted over ~1 s windows. Two windows in a row under
