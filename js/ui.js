@@ -211,6 +211,15 @@ function randomNodes(count) {
     size: prev[i] ? prev[i].size : 1, w: prev[i] ? prev[i].w : 1 }));
 }
 
+// New size and line weight for every node, 0.6–1.8 each, median 1
+// (r^1.6 leans towards the small end, so most designs stay near the old look
+// and now and then one node stands out). One decimal, like the node sliders.
+const VARY_MIN = 0.6, VARY_SPAN = 1.2, VARY_BIAS = 1.6;
+function varyNodeSizes(nodes) {
+  const v = () => Math.round((VARY_MIN + VARY_SPAN * Math.pow(Math.random(), VARY_BIAS)) * 10) / 10;
+  return nodes.map(n => ({ ...n, size: v(), w: v() }));
+}
+
 // Fit nodes: every node (and each of its symmetry copies) is pulled in
 // towards the middle until it sits a little inside the boundary, or the page
 // when it clips. In modes that draw a part round each node (OWN_MODES: Arcane
@@ -663,7 +672,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 37c (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 38 (24-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -837,6 +846,8 @@ function bindDesignControls() {
     lset('density', Math.floor(Math.random() * 5) + 4);
     lset('weight', +(Math.random() * 1.5 + 0.4).toFixed(1));
     lset('seed', randomSeed());
+    // Nodes are shared by both layers, so only Layer 1's Vary changes them
+    if (EDIT_L === 1) { S.nodes = varyNodeSizes(S.nodes); renderNodeRoster(); }
     syncControls();
     update();
     commit();

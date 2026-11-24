@@ -739,7 +739,7 @@ function randomizeAll() {
     : { mode: 'none', density: 4, weight: 0.6, strength: 60 };
   applyDesign(d);
   // Nodes last: they fill the region the new boundary and symmetry leave
-  S.nodes = randomNodes(ri(3, 8));
+  S.nodes = varyNodeSizes(randomNodes(ri(3, 8)));
   fitNodes();
   openNode = -1;
   fitView();
@@ -765,7 +765,7 @@ function ambientScene(first = false) {
   if (S.palette.mode === 'stencil') S.palette = { ...S.palette, mode: 'tint' };
   S.seed = randomSeed();
   if (S.layer.seed !== undefined) S.layer.seed = randomSeed();
-  S.nodes = randomNodes(3 + Math.floor(Math.random() * 6));
+  S.nodes = varyNodeSizes(randomNodes(3 + Math.floor(Math.random() * 6)));
   fitNodes();
   sceneZoom();
   ANIM.sceneAt = ANIM.time;
