@@ -623,7 +623,7 @@ const MODE_NAME = m => { const o = document.querySelector(`#mode option[value="$
 const MICRO_INFO = {
   organisms: MODE_INFO.microscope,
   blood: ['A blood smear under the microscope: a dense layer of drifting red blood cells with white blood cells (the nodes) and a few platelets.', ['life', 'blink', 'drift']],
-  hyphae: ['Fungal hyphae under the microscope: branching, septate threads grow from a spore on every node and cross in layers, with soft out-of-focus threads behind.', ['life', 'blink', 'draw']]
+  hyphae: ['Fungal hyphae under the microscope: branching, septate threads grow from the nodes and cross in layers, with soft out-of-focus threads behind.', ['life', 'draw', 'drift']]
 };
 const modeInfo = (m, layer) => m === 'microscope' ? MICRO_INFO[((layer === 2 ? S.layer.micro : S.micro) || {}).specimen] || MODE_INFO.microscope : MODE_INFO[m];
 function syncModeInfo() {

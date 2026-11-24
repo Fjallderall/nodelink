@@ -6,11 +6,10 @@
 //              nodes are white blood cells (the Microscope cell, no cilia)
 //   hyphae     fungal hyphae: long, branching, septate tubes in layers, darker
 //              where they pile up, with soft out-of-focus threads behind; the
-//              nodes are spores (a small Microscope cell, no cilia) the hyphae
-//              grow from
+//              nodes are where the colony's hyphae start (no cell is drawn)
 // Life: red cells and platelets drift (one Life group each); every hypha with
-// its branches drifts as one; the white cells and spores wobble. Blink: the
-// nuclei of the white cells and spores (red cells and hyphae have none).
+// its branches drifts as one; the white cells wobble. Blink: the nuclei of the
+// white cells (red cells and hyphae have none, so Hyphae has nothing to blink).
 // Both use the shared setup (micSetup) and helpers of microscope.js, and the
 // random stream mc.R in a fixed order, so a seed gives the same slide.
 // Used by: renderMicroscope (microscope.js), which calls micSpecimen.
@@ -25,8 +24,7 @@ const BLOOD_SPACING_BASE = 2.5, BLOOD_SPACING_PER_DENSITY = 0.15;   // grid step
 const BLOOD_JITTER = 0.35;                         // grid positions move up to this × the step
 const BLOOD_FLAT = 0.88;                           // shortest axis ÷ longest
 const BLOOD_CENTRE = 0.5, BLOOD_CENTRE_A = 0.5;    // paler centre: radius × and how much background it lets through
-const BLOOD_PLATELET_P = 0.05;
-const HY_SPORE = 0.4;                              // spore size on a node: × the Microscope cell                     // chance that a grid place holds platelets instead
+const BLOOD_PLATELET_P = 0.05;                     // chance that a grid place holds platelets instead
 
 // Hyphae
 const HY_BODY = 'rgba(214, 70, 84, 0.3)';          // tube body: where tubes cross it adds up
@@ -143,10 +141,6 @@ function micHyphae(mc) {
   };
   drawTrees(threads.filter(t => t.far && t.pts.length > 1), micHyphaFar);
   drawTrees(threads.filter(t => !t.far && t.pts.length > 1), micHypha);
-  // The spores the colony grows from, drawn last like all Microscope cells
-  micCells(mc, HY_SPORE);
-  mc.noCilia = true;
-  mc.cells.forEach((k, ci) => micCell(mc, k, ci));
 }
 
 // Out of focus: a wide, faint smear built from stacked strokes
