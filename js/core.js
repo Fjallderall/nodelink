@@ -155,7 +155,7 @@ const S = {
   page: { preset: 'none', unit: 'mm', w: 63, h: 88, bleed: 0, clip: true },
   sym: { n: 1, mirror: false },                     // n folds; mirror = kaleidoscope wedges (n=1 + mirror = left/right)
   layer: { mode: 'none', density: 4, weight: 0.6, strength: 60 },
-  boundary: { shape: 'none', size: 300, border: 'single', outside: null },   // outside: own colour outside the boundary ('#rrggbb'), null = the background
+  boundary: { shape: 'none', size: 300, border: 'single', outside: null, lw: null, color: null },   // outside: own colour outside the boundary ('#rrggbb'), null = the background; lw: border thickness (world units), null = follows Stroke weight; color: border colour ('#rrggbb'), null = the colour scheme's
   xf: { scale: 1, rot: 0, x: 0, y: 0 },             // design scale and rotation (degrees) about the design origin, then offset (world units), inside the boundary
   draggingNode: null,
   isPanning: false,

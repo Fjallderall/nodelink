@@ -178,11 +178,25 @@ function segDist2(px, py, ax, ay, bx, by) {
 
 function scalePoly(pts, k) { return pts.map(p => ({ x: p.x * k, y: p.y * k })); }
 
-function drawBorder(c) {
+// ── Border line ──
+// S.boundary.lw: own thickness in world units, null = follows Stroke weight
+// (S.weight × 2.4). S.boundary.color: own colour, painted on the raw context
+// so the colour scheme leaves it as chosen; null = the mode's accent through
+// the scheme. In the stencil renders (cut, bounds) it is ink as always, at
+// least Stroke weight thick: the cut grows lines of Stroke weight to the
+// minimum cut width, so a thinner border would fall short of it.
+const BORDER_LW_MIN = 0.5, BORDER_LW_MAX = 24;
+function borderLw() {
+  const lw = S.boundary.lw;
+  return lw == null ? Math.max(BORDER_LW_MIN, S.weight * 2.4) : lw;
+}
+function drawBorder(c, o = {}) {
   const B = S.boundary;
   if (B.border === 'none') return;
-  const col = ACCENT[S.mode] || '#ddd6c8';
-  const lw = Math.max(0.5, S.weight * 2.4);
+  const stencil = o.map === STENCIL_MAP;
+  if (B.color && !stencil && o.raw) c = o.raw;
+  const col = B.color && !stencil ? B.color : ACCENT[S.mode] || '#ddd6c8';
+  const lw = stencil ? Math.max(borderLw(), S.weight) : borderLw();
   c.save();
   c.globalAlpha = 1;
   c.shadowBlur = 0;
@@ -771,6 +785,6 @@ function renderDesign(c, o = {}) {
   applyXf(c);
   drawSymmetric(c, dl, F, { ...o, gaze });
   c.restore();
-  if (poly) drawBorder(c);
+  if (poly) drawBorder(c, o);
   c.restore();
 }

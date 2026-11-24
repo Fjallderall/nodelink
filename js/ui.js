@@ -398,6 +398,7 @@ function syncVals() {
   document.getElementById('v-density').textContent = lget('density');
   document.getElementById('v-sigma').textContent = lget('sigma');
   document.getElementById('v-weight').textContent = lget('weight').toFixed(1);
+  syncBorder();                     // its thickness may follow Stroke weight
   document.getElementById('v-dew').textContent = lget('dew');
   document.getElementById('v-curve').textContent = lget('curve');
   document.getElementById('dew-cg').classList.toggle('hidden', m !== 'spiderweb');
@@ -537,6 +538,19 @@ function syncControls() {
   syncSummaries();
 }
 
+// Border thickness and colour (Layout → Boundary). Also called when Stroke
+// weight moves, as the thickness follows it while Follow Stroke weight is on.
+function syncBorder() {
+  const $ = id => document.getElementById(id), B = S.boundary;
+  $('bnd-line').classList.toggle('hidden', B.border === 'none');
+  const lw = borderLw();
+  $('bnd-lw').value = lw;
+  $('v-bnd-lw').textContent = lw.toFixed(1);
+  $('bnd-lw-auto').checked = B.lw == null;
+  $('bnd-col-mode').value = B.color ? 'own' : 'scheme';
+  $('bnd-col').classList.toggle('hidden', !B.color);
+  if (B.color) { $('bnd-col').value = B.color; $('bnd-col').dataset.used = 1; }
+}
 function syncComposition() {
   const $ = id => document.getElementById(id);
   const symType = S.sym.n > 1 ? 'radial' : (S.sym.mirror ? 'mirror' : 'off');
@@ -556,6 +570,7 @@ function syncComposition() {
   $('bnd-size').value = S.boundary.size;
   $('v-bnd-size').textContent = S.boundary.size;
   $('bnd-border').value = S.boundary.border;
+  syncBorder();
   $('bnd-out-mode').value = S.boundary.outside ? 'own' : 'bg';
   $('bnd-out').classList.toggle('hidden', !S.boundary.outside);
   if (S.boundary.outside) { $('bnd-out').value = S.boundary.outside; $('bnd-out').dataset.used = 1; }
@@ -641,7 +656,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 33 (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 34 (24-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -875,6 +890,24 @@ function bindComposition() {
   $('xf-move').addEventListener('click', () => setMoveDesign(!S.moveDesign));
   $('btn-move').addEventListener('click', () => setMoveDesign(!S.moveDesign));
   changeCtl('bnd-border', t => { S.boundary.border = t.value; });
+  // Border thickness: moving the slider gives the border its own thickness;
+  // Follow Stroke weight takes it back to 2.4 × Stroke weight
+  liveSlider('bnd-lw', v => { S.boundary.lw = v; });
+  changeCtl('bnd-lw-auto', t => { S.boundary.lw = t.checked ? null : borderLw(); });
+  // Border colour: the first time, the colour the border has now (the
+  // scheme's accent), so switching to Own colour changes nothing until picked
+  changeCtl('bnd-col-mode', t => {
+    const pick = $('bnd-col');
+    if (t.value === 'own' && !pick.dataset.used) {
+      const acc = ACCENT[S.mode] || '#ddd6c8', map = makeColorMap(S.palette), now = map ? map(acc) : acc;
+      const c = parseColor(now);
+      if (c) pick.value = '#' + [c.r, c.g, c.b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+    }
+    pick.dataset.used = 1;
+    S.boundary.color = t.value === 'own' ? pick.value : null;
+  });
+  $('bnd-col').addEventListener('input', e => { S.boundary.color = e.target.value; update(); });
+  $('bnd-col').addEventListener('change', () => commit());
   // Outside colour: the picker keeps its last colour while switched to
   // Background; the first time, a grey that stands apart from the background
   changeCtl('bnd-out-mode', t => {

@@ -136,7 +136,9 @@ function applyDesign(d) {
     shape: ['none', 'circle', 'square', 'pentagon', 'hexagon'].includes(bnd.shape) ? bnd.shape : bnd.shape === 'shield' ? 'circle' : 'none',
     size: clampNum(bnd.size, 100, 900, 300),
     border: ['single', 'double', 'none'].includes(bnd.border) ? bnd.border : 'single',
-    outside: HEX(bnd.outside) ? bnd.outside : null
+    outside: HEX(bnd.outside) ? bnd.outside : null,
+    lw: bnd.lw == null ? null : clampNum(bnd.lw, BORDER_LW_MIN, BORDER_LW_MAX, null),
+    color: HEX(bnd.color) ? bnd.color : null
   };
   const xf = d.xf || {};
   S.xf = { scale: clampNum(xf.scale, 0.25, 4, 1), rot: clampNum(xf.rot, -180, 180, 0), x: clampNum(xf.x, -XF_MAX, XF_MAX, 0), y: clampNum(xf.y, -XF_MAX, XF_MAX, 0) };

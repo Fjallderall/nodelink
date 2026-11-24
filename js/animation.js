@@ -728,7 +728,7 @@ function randomizeAll() {
   const sr2 = Math.random();
   d.sym = sr2 < 0.5 ? { n: 1, mirror: false } : sr2 < 0.65 ? { n: 1, mirror: true } : { n: pickRandom([3, 4, 5, 6, 6, 8]), mirror: chance(0.5) };
   // Boundary (none 40%), and now and then a turned or enlarged design inside it
-  d.boundary = { shape: chance(0.4) ? 'none' : pickRandom(['circle', 'square', 'pentagon', 'hexagon']), size: ri(26, 42) * 10, border: pickRandom(['single', 'single', 'double', 'none']), outside: S.boundary.outside };   // the outside colour is kept
+  d.boundary = { shape: chance(0.4) ? 'none' : pickRandom(['circle', 'square', 'pentagon', 'hexagon']), size: ri(26, 42) * 10, border: pickRandom(['single', 'single', 'double', 'none']), outside: S.boundary.outside, lw: S.boundary.lw, color: S.boundary.color };   // the outside colour and the border's thickness and colour are kept
   d.xf = (d.boundary.shape !== 'none' || pageActive()) && chance(0.3)
     ? { scale: pickRandom([1, 1.2, 1.4, 1.6]), rot: pickRandom([0, 15, 30, 45, -15, -30]), x: 0, y: 0 } : { scale: 1, rot: 0, x: 0, y: 0 };
   // Layer 2 a quarter of the time, a different mode
