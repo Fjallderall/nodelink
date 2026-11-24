@@ -662,7 +662,11 @@ function updateExportReadout() {
   const parts = [];
   if (fmt === 'video') {
     const lv = loopSettings(), [w, h] = loopSize(lv.size);
-    $('ex-loop-screen').textContent = `This screen (${loopScreenSize().join(' × ')})`;
+    // With a Page the options are pixel budgets: the page's shape at the same area
+    const pg = pageActive(), sz = k => loopSize(k).join(' × ');
+    $('ex-loop-1080').textContent = pg ? `Full HD size (${sz('1080')}, page shape)` : '1920 × 1080 (Full HD)';
+    $('ex-loop-2160').textContent = pg ? `4K size (${sz('2160')}, page shape)` : '3840 × 2160 (4K)';
+    $('ex-loop-screen').textContent = pg ? `This screen's size (${sz('screen')}, page shape)` : `This screen (${loopScreenSize().join(' × ')})`;
     parts.push(`${w} × ${h} px`, `${lv.secs} s`, `${lv.secs * lv.fps} frames`, 'MP4');
     $('ex-loop-bg-note').classList.toggle('hidden', !(lv.bg === 'black' && loopBgLight()));
   } else if (pageActive()) { const m = pageMm(); parts.push(`Page: ${+m.w.toFixed(1)} × ${+m.h.toFixed(1)} mm` + (m.bleed ? ` + ${m.bleed} mm bleed` : '')); }
@@ -678,7 +682,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 46 (24-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 47 (25-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {

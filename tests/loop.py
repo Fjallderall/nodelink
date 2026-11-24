@@ -23,6 +23,9 @@ SCEN = {
     # Pure black background (Phase 29): lead and other background-coloured masks go black too
     'glass-black': "S.mode='glass'; E.loopBg='black'; Object.assign(ANIM.opts,{sun:true,drift:true,hue:true});",
     'micro-black': "S.mode='microscope'; E.loopBg='black'; Object.assign(ANIM.opts,{life:true,blink:true});",
+    # Page shape (Phase 47): the video takes the page's aspect ratio (A4 portrait, square, wide)
+    'page-a4': "S.mode='constellation'; S.page={preset:'a4',unit:'mm',w:210,h:297,bleed:0,clip:true}; Object.assign(ANIM.opts,{twinkle:true,drift:true});",
+    'page-tarot-bleed': "S.mode='pcb'; S.page={preset:'tarot',unit:'mm',w:70,h:120,bleed:3,clip:true}; Object.assign(ANIM.opts,{drift:true,current:true});",
     # Ripples (Phase 41): Steady nudged to whole rings, so the seam has no jump even before the crossfade
     'water-ripples': "S.mode='water'; S.water={meet:'wave',spacing:24,drops:0}; Object.assign(ANIM.opts,{ripples:true,rpSpd:1.3});",
 }

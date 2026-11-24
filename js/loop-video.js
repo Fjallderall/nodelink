@@ -18,6 +18,7 @@
 //     wall clock), H.264 in MP4 for TVs and VJ software; VP9 in MP4 where the
 //     browser has no H.264 encoder (VLC and browsers play it, TVs may not).
 //     The MP4 file is written by mp4File below (no libraries).
+// Size: 16:9 (Full HD, 4K, this screen), or the Page layout's shape at the same pixel budget (loopSize).
 // Background: the design's own, or pure black for a projector (loopBlack).
 // Settings live in E (loopS, loopFps, loopSize, loopBg) with the other export settings.
 // Used by: the Export drawer (ui.js).
@@ -54,7 +55,19 @@ function loopScreenSize() {
   const k = Math.min(1, Math.sqrt(3840 * 2160 / (w * h)), 4096 / Math.max(w, h));
   return [Math.round(w * k / 2) * 2, Math.round(h * k / 2) * 2];
 }
-function loopSize(size) { return size === 'screen' ? loopScreenSize() : LOOP_SIZES[size]; }
+// With a Page layout the video takes the page's shape (bleed included, as on
+// the canvas): the size setting is a pixel budget (the area and the longest
+// side of its 16:9 box), so A4 portrait at Full HD is 1210 × 1712, not a thin
+// strip inside 1920 × 1080. Without a page the box itself is the size.
+function loopSize(size) {
+  const box = size === 'screen' ? loopScreenSize() : LOOP_SIZES[size];
+  if (!pageActive()) return box;
+  const f = pageRect(true), a = f.w / f.h;
+  let h = Math.sqrt(box[0] * box[1] / a), w = h * a;
+  const k = Math.min(1, Math.max(box[0], box[1]) / Math.max(w, h));
+  const even = v => Math.max(16, Math.round(v * k / 2) * 2);
+  return [even(w), even(h)];
+}
 // What is on the canvas (the page if there is one), whole and centred in the
 // video; the background fills the rest, as in Export PNG
 function loopView(W, H) {
