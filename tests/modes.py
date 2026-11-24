@@ -12,6 +12,11 @@ OPTS = {
            for (lv, fl, td, vn) in [(100, 60, True, True), (200, 100, False, False), (0, 0, True, True), (40, 30, True, False)]
            for lf in ['almond', 'round', 'ivy', 'mixed'] for bl in ['blossom', 'daisy', 'rose', 'mixed']
            for se in ['summer', 'spring', 'autumn', 'winter'] if (lf == 'mixed' or bl == 'mixed' or se == 'summer')],
+  # Modes whose options are top-level design fields: {'_top': {...}} is merged into the design
+  'spiderweb': [{'_top': {'sigma': sg, 'dew': dw, 'curved': cv, 'curve': cu}}
+                for sg in [60, 0, 30, 50, 75, 100] for dw in [60, 0, 100] for (cv, cu) in [(False, 50), (True, 20), (True, 90)]],
+  'lightning': [{'_top': {'sigma': sg, 'lightning': {'glow': g, 'fill': f}}}
+                for sg in [60, 0, 30, 100] for g in [True, False] for f in [False, True]],
 }
 JS = r"""
 async ([modes, OPTS]) => {
@@ -36,7 +41,7 @@ async ([modes, OPTS]) => {
     }
   };
   for (const m of modes) {
-    OPTS[m].forEach((o, i) => { const d = base(); d.mode = m; d[m] = o; shot(`${m}/opt/${JSON.stringify(o)}`, d, i % 7 === 0); });
+    OPTS[m].forEach((o, i) => { const d = base(); d.mode = m; if (o._top) Object.assign(d, o._top); else d[m] = o; shot(`${m}/opt/${JSON.stringify(o)}`, d, i % 7 === 0); });
     const first = OPTS[m].slice(0, m === 'glass' ? 30 : 12);
     for (const o of first) for (const [k, mut] of [
       ['seed1', d => { d.seed = 1; }], ['seed777', d => { d.seed = 777777; d.density = 9; }],
@@ -48,7 +53,7 @@ async ([modes, OPTS]) => {
       ['stencil', d => { d.palette = { mode: 'stencil', ink: '#112233', paper: '#ffffff', glow: '#112233', preset: 'custom', l2: null }; }],
       ['xf', d => { d.xf = { scale: 1.6, rot: 30, x: 40, y: -20 }; }],
       ['L2', d => { d.layer = { mode: 'web', density: 5, weight: 0.8, strength: 70 }; }],
-    ]) { const d = base(); d.mode = m; d[m] = o; mut(d); shot(`${m}/${k}/${JSON.stringify(o)}`, d, k === 'hex' || k === 'sym6'); }
+    ]) { const d = base(); d.mode = m; if (o._top) Object.assign(d, o._top); else d[m] = o; mut(d); shot(`${m}/${k}/${JSON.stringify(o)}`, d, k === 'hex' || k === 'sym6'); }
     for (const M of ['pcb', 'foam', 'arcane']) { const d = base(); d.mode = M; d.layer = { mode: m, density: 5, weight: 0.8, strength: 70 }; shot(`${M}+L2${m}`, d); }
   }
   return res;
