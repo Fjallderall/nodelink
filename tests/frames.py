@@ -39,6 +39,20 @@ SCEN = {
     'sky': "S.mode='constellation'; S.layer={mode:'lightning',density:5,weight:0.8,strength:80}; Object.assign(ANIM.opts,{twinkle:true,strikes:true,current:true,skRate:4,shoot:3});",
 }
 
+# Extra scenarios (frames.py FILE OUT.json extra): Cathedral Glass and Vines in
+# more depth, run on the old and the new file to compare (no reference file)
+SCEN_EXTRA = {
+    'tiffany-sun-draw': "S.mode='glass'; S.glass={style:'tiffany',set:'sea',light:true}; Object.assign(ANIM.opts,{sun:true,draw:true,drift:true,sunSpd:2});",
+    'rose-sun': "S.mode='glass'; S.glass={style:'rose',set:'amber',light:true}; S.boundary={shape:'hexagon',size:300,border:'single'}; Object.assign(ANIM.opts,{sun:true,spin:true,sunSpd:4});",
+    'mosaic-l2': "S.mode='arcane'; S.layer={mode:'glass',density:5,weight:0.8,strength:70}; Object.assign(ANIM.opts,{sun:true,drift:true,rings:true});",
+    'vine-spring': "S.mode='vine'; S.vine={leaves:150,flowers:90,leaf:'mixed',bloom:'mixed',tendrils:true,veins:true,season:'spring'}; Object.assign(ANIM.opts,{seasons:true,petals:true,ssSpd:6,ptRate:4});",
+    'vine-autumn': "S.mode='vine'; S.vine={leaves:100,flowers:60,leaf:'ivy',bloom:'daisy',tendrils:true,veins:true,season:'autumn'}; Object.assign(ANIM.opts,{seasons:true,wind:true,draw:true,ssSpd:6});",
+    'vine-winter': "S.mode='vine'; S.vine={leaves:100,flowers:60,leaf:'round',bloom:'rose',tendrils:false,veins:false,season:'winter'}; S.sym={n:4,mirror:false}; Object.assign(ANIM.opts,{seasons:true,bloom:true,ssSpd:8});",
+    'vine-grow': "S.mode='vine'; Object.assign(ANIM.opts,{draw:true,bloom:true,petals:true,wind:true,ptRate:5});",
+    'vine-morph': "S.mode='vine'; Object.assign(ANIM.opts,{morph:true,drift:true,bloom:true});",
+}
+if len(sys.argv) > 3 and sys.argv[3] == 'extra': SCEN = SCEN_EXTRA
+
 JS_FRAME = """(t) => { window.__clock(t); const q = window.__raf.splice(0); q.forEach(f => f(t)); }"""
 JS_SHOT = """() => document.querySelector('#canvas-container canvas').toDataURL()"""
 JS_EXPORTS = """() => {
