@@ -230,7 +230,10 @@ function swapLayers() {
   Object.assign(S, back);
   S.layer = { ...front, strength: L.strength };
   const P = S.palette;
-  if (P.l2) {
+  if (P.l2 && P.l2.original) {                 // Layer 2 was original: Layer 1 is now, and Layer 2 takes the old scheme
+    P.l2 = P.mode === 'original' ? null : { ink: P.ink, glow: P.glow, preset: P.preset };
+    P.mode = 'original';
+  } else if (P.l2) {
     const l2 = { ink: P.ink, glow: P.glow, preset: P.preset };
     P.ink = P.l2.ink; P.glow = P.l2.glow; P.preset = P.l2.preset;
     P.l2 = l2;

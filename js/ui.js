@@ -486,8 +486,9 @@ function syncPalette() {
   $('palette').value = pal.mode;
   $('palette').closest('.cg').classList.toggle('hidden', L2);
   $('l2-same-row').classList.toggle('hidden', !L2);
-  $('l2-same').checked = !pal.l2;
-  const own = L2 && pal.l2;
+  const l2mode = !pal.l2 ? 'same' : pal.l2.original ? 'original' : 'own';
+  $('l2-colour').value = l2mode;
+  const own = L2 && l2mode === 'own';
   const showGrid = L2 ? !!own : true;
   $('pal-grid').classList.toggle('hidden', !showGrid);
   const showRow = L2 ? !!own : pal.mode !== 'original';
@@ -497,7 +498,7 @@ function syncPalette() {
   $('glow-cell').style.display = stencil ? 'none' : '';
   $('lbl-paper').textContent = stencil ? 'Paper' : 'Background';
   $('lbl-ink').textContent = stencil ? 'Ink' : 'Lines';
-  const src = own ? pal.l2 : pal;
+  const src = own ? pal.l2 : pal;      // (the pickers are hidden for Layer 2 unless it has a scheme)
   $('ink').value = src.ink;
   $('glow').value = src.glow || src.ink;
   $('paper').value = pal.paper;
@@ -682,7 +683,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 52b (25-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 52c (25-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -715,7 +716,7 @@ function setDrawer(open) {
 function syncSummaries() {
   const pn = id => (PALETTES.find(p => p.id === id) || { name: 'custom' }).name.toLowerCase();
   document.getElementById('sum-colour').textContent = (S.palette.mode === 'tint' ? pn(S.palette.preset) : S.palette.mode === 'stencil' ? 'own colours' : 'original')
-    + (S.palette.l2 && S.layer.mode !== 'none' ? ' · L2 ' + pn(S.palette.l2.preset) : '');
+    + (S.palette.l2 && S.layer.mode !== 'none' ? ' · L2 ' + (S.palette.l2.original ? 'original' : pn(S.palette.l2.preset)) : '');
 }
 
 // Fold the side menu (bottom sheet on a phone) away, or bring it back.
@@ -1082,8 +1083,9 @@ function bindPaletteControls() {
     update();
     commit();
   });
-  document.getElementById('l2-same').addEventListener('change', e => {
-    if (e.target.checked) S.palette.l2 = null;
+  document.getElementById('l2-colour').addEventListener('change', e => {
+    if (e.target.value === 'same') S.palette.l2 = null;
+    else if (e.target.value === 'original') S.palette.l2 = { original: true };
     else {
       // Start from a scheme that differs from Layer 1's, so the change shows
       const p = PALETTES.find(q => q.id !== (S.palette.mode === 'tint' ? S.palette.preset : '')) || PALETTES[0];

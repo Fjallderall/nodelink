@@ -50,7 +50,7 @@ function getDesign() {
 const HEX = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
 function sanitizePalette(p) {
   p = p || {};
-  const l2 = p.l2 && HEX(p.l2.ink) ? { ink: p.l2.ink, glow: HEX(p.l2.glow) ? p.l2.glow : p.l2.ink,
+  const l2 = p.l2 && p.l2.original === true ? { original: true } : p.l2 && HEX(p.l2.ink) ? { ink: p.l2.ink, glow: HEX(p.l2.glow) ? p.l2.glow : p.l2.ink,
     preset: typeof p.l2.preset === 'string' ? p.l2.preset : 'custom' } : null;
   return {
     mode: ['stencil', 'tint'].includes(p.mode) ? p.mode : 'original',

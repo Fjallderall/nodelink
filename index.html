@@ -229,7 +229,14 @@
           <option value="stencil">Own colours</option>
         </select>
       </div>
-      <label class="chk hidden" id="l2-same-row" title="Layer 2 uses Layer 1&#x27;s colours. Untick to give Layer 2 colours of its own"><input type="checkbox" id="l2-same" checked> Same colours as Layer 1</label>
+      <div class="cg hidden" id="l2-same-row">
+        <label for="l2-colour">Colours</label>
+        <select id="l2-colour" title="Same as Layer 1: Layer 2 uses Layer 1&#x27;s colours. Original colours: Layer 2 keeps its mode&#x27;s own colours, whatever Layer 1 uses. Colour scheme: pick a scheme or colours for Layer 2 alone">
+          <option value="same">Same as Layer 1</option>
+          <option value="original">Original colours</option>
+          <option value="own">Colour scheme</option>
+        </select>
+      </div>
       <div class="pal-grid" id="pal-grid" role="listbox" aria-label="Colour schemes"></div>
       <div class="row" id="ink-row">
         <div id="paper-cell"><label for="paper" id="lbl-paper">Paper</label><input type="color" id="paper" title="The background colour" value="#ffffff"></div>

@@ -58,7 +58,8 @@ const PALETTES = [
 function makeColorMap(pal) {
   if (!pal) return null;
   const l2 = pal.l2 && S.layer.mode !== 'none' ? pal.l2 : null;
-  if (pal.mode === 'original' && !l2) return null;
+  const l2Orig = !!(l2 && l2.original);          // Layer 2 keeps its own mode's colours whatever Layer 1 does
+  if (pal.mode === 'original' && (!l2 || l2Orig)) return null;
   const P = c => parseColor(c) || { r: 0, g: 0, b: 0, a: 1 };
   const lumOf = c => (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255;
   const bg = pal.mode === 'original' ? P(modeBg(S.mode)) : P(pal.paper);
@@ -101,7 +102,7 @@ function makeColorMap(pal) {
     if (pal.mode === 'stencil') return stencil(P(src.ink));
     return (mode === 'nebula' || mode === 'glass' ? hueRamp : ramp)(P(src.ink), P(src.glow || src.ink), mode);
   };
-  const fns = [pick(S.mode, false), l2 ? pick(S.layer.mode, true) : null];
+  const fns = [pick(S.mode, false), l2 && !l2Orig ? pick(S.layer.mode, true) : null];
   const mapOf = fn => {
     const cache = new Map();
     return (v) => {
