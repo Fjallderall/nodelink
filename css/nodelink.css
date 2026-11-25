@@ -335,6 +335,8 @@ body.ambient.hide-cursor #ambient-exit { opacity: 0; }
 .an-fps b { color: var(--bone); font-weight: 600; }
 .an-fps.low b { color: #ffb36b; }
 .an-note { font-size: 0.74rem; line-height: 1.4; color: var(--bone); background: var(--raise); border-left: 2px solid #ffb36b; border-radius: var(--r); padding: 7px 9px; margin: 0 0 10px; }
+.an-retry { display: block; margin-top: 6px; padding: 4px 9px; border: 1px solid var(--line, #3a3a3f); border-radius: var(--r); background: var(--sepia); color: var(--bone); font: inherit; cursor: pointer; }
+.an-retry:hover, .an-retry:focus-visible { color: var(--gold); }
 .an-tips { position: relative; font-size: 0.74rem; line-height: 1.4; color: var(--bone); background: var(--raise); border-left: 2px solid #ffb36b; border-radius: var(--r); padding: 7px 26px 7px 9px; margin: 0 0 10px; }
 .an-tips p { color: var(--muted); margin: 0 0 4px; }
 .an-tips ul { margin: 0; padding-left: 15px; }

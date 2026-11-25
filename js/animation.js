@@ -34,6 +34,7 @@ const ANIM = {
   , recEMA: 0, recMode: '',   // how long a recording takes (ms, smoothed) for the current mode
   res: 1, frameEMA: 0, resAt: 0, resTry: null, resFloor: 0  // render scale while playing, smoothed real frame interval; last drop being judged; lowest scale that still helped
   , drawHeavy: false, warpSlow: 0, warpWarm: 0  // bent (warp) frames take too long to draw: drift uses keyframes
+  , symKey: ''   // symmetry settings last seen by animStep: a change judges live drift afresh (driftRetry)
   , driftNote: ''   // text of the panel note that says Drift fell back to keyframes (driftNoteUpdate)
   , clock: null, hueFilter: '', hueK: 1   // fixed time (ms) while a loop video renders (animNow); Colour cycle's CSS filter for this frame and its rate factor (loop video)
 };
@@ -249,8 +250,18 @@ function driftNoteText() {
   const modes = [S.mode, S.layer && S.layer.mode].filter(m => DRIFT_JUMPY.includes(m) && !DRIFT_BEND.includes(m));
   if (!modes.length) return '';
   const n = symCopies().length, l2 = S.layer && S.layer.mode && S.layer.mode !== 'none';
-  const help = n >= 6 ? `Fewer symmetry copies (now ${n}) help most` : l2 ? 'Turning off Layer 2 or a lower Density helps' : 'A lower Density helps';
-  return `<b>Drift</b> can't re-route ${[...new Set(modes)].map(MODE_NAME).join(' and ')} live: this design is too heavy to redraw every frame, so it only dissolves into a new layout every ${DRIFT_KEY} s. ${help}; <b>Flow</b> is the calmer choice here.`;
+  const help = n >= 6 ? `<b>Symmetry</b> draws the design ${n} times${S.sym.mirror ? ' (Mirror doubles it)' : ''}: fewer copies is the biggest saving.`
+    : l2 ? 'Turning off Layer 2 or a lower Density helps.' : 'A lower Density helps.';
+  return `<b>Drift</b> can't re-route ${[...new Set(modes)].map(MODE_NAME).join(' and ')} live: this design is too heavy to redraw every frame, so it only dissolves into a new layout every ${DRIFT_KEY} s. ${help} <b>Flow</b> is the calmer choice here. <button type="button" class="an-retry" id="an-retry">Try live Drift again</button>`;
+}
+// Live drift is judged afresh: after a change of symmetry (it is not in the
+// display-list key, so the design-change reset in animStep never sees it) and
+// on the panel's button. A design that is still too heavy falls back again
+// after two slow frames and the note comes back.
+function driftRetry() {
+  ANIM.drawHeavy = false; ANIM.warpSlow = 0; ANIM.warpWarm = Math.max(ANIM.warpWarm, WARP_WARM);
+  ANIM.heavy = false; ANIM.recEMA = Math.min(ANIM.recEMA, REC_HEAVY / 2);
+  ANIM.curKey = '';                              // record afresh at the current drift position
 }
 function driftNoteUpdate() {
   const t = driftNoteText();
@@ -344,6 +355,8 @@ function animRerecord(o, t, now) {
   // Drift on a jumpy mode (no Flow, no Glitch): re-routed live, bent by the warp
   // (a mode that is only slow, not jumpy, takes cheap cached keyframes instead:
   // bending its many recordings every frame costs more than it saves)
+  const symKey = JSON.stringify(S.sym);
+  if (ANIM.symKey !== symKey) { if (ANIM.symKey !== '') driftRetry(); ANIM.symKey = symKey; }
   const warp = jumpyMode && o.drift && !o.flow && !o.glitch && !ANIM.heavy && !ANIM.drawHeavy;
   if (!warp) ANIM.trail = [];
   // A smooth mode that is only slow on this device (nebula, microscope on a
@@ -606,7 +619,7 @@ function setPlaying(on, freeze = true) {
     document.getElementById('an-fps-v').textContent = '–';
     document.getElementById('an-fps').classList.remove('low');
     document.getElementById('an-tips').classList.add('hidden');
-    ANIM.driftNote = ''; { const dn = document.getElementById('an-drift-note'); dn.innerHTML = ''; dn.classList.add('hidden'); }
+    ANIM.driftNote = ''; ANIM.symKey = ''; { const dn = document.getElementById('an-drift-note'); dn.innerHTML = ''; dn.classList.add('hidden'); }
     ANIM.resAt = performance.now();               // let the frame average settle (≥ 1 s) before changing resolution
     ANIM.warpWarm = WARP_WARM;                    // and don't judge the bent frames by the first few
     if (!resume) animFresh();
@@ -911,6 +924,7 @@ function setupAnim() {
     else if (ANIM.frozen) { dropFrozen(); update(); }
   });
   $('btn-ambient').addEventListener('click', enterAmbient);
+  $('an-drift-note').addEventListener('click', e => { if (e.target.closest('#an-retry')) driftRetry(); });
   $('an-tips-x').addEventListener('click', () => { ANIM.tipsOff = true; $('an-tips').classList.add('hidden'); });
   // Blink: the eyes look at the pointer, wherever it is in the window
   window.addEventListener('pointermove', e => {
