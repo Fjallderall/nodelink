@@ -34,6 +34,7 @@ const ANIM = {
   , recEMA: 0, recMode: '',   // how long a recording takes (ms, smoothed) for the current mode
   res: 1, frameEMA: 0, resAt: 0, resTry: null, resFloor: 0  // render scale while playing, smoothed real frame interval; last drop being judged; lowest scale that still helped
   , drawHeavy: false, warpSlow: 0, warpWarm: 0  // bent (warp) frames take too long to draw: drift uses keyframes
+  , driftNote: ''   // text of the panel note that says Drift fell back to keyframes (driftNoteUpdate)
   , clock: null, hueFilter: '', hueK: 1   // fixed time (ms) while a loop video renders (animNow); Colour cycle's CSS filter for this frame and its rate factor (loop video)
 };
 // The animation's own clock: real time, or the frame time while a loop video
@@ -234,8 +235,30 @@ function animTick(now) {
     // recording would otherwise snap back to where it was recorded)
     if (ANIM.warpSlow >= 2) { ANIM.drawHeavy = true; ANIM.trail = []; ANIM.curKey = ''; }
   }
+  driftNoteUpdate();
   if (!ANIM.ambient) renderNodeDOM(ANIM.hpos);
   ANIM.raf = requestAnimationFrame(animTick);
+}
+// Drift on a jumpy mode that has given up re-routing live (the design is too
+// heavy to bend or record every frame: drawHeavy / heavy) falls back to a new
+// keyframe every DRIFT_KEY s. The panel says so for as long as that lasts,
+// whatever the frame rate, and says what would bring live drift back.
+function driftNoteText() {
+  const o = ANIM.opts;
+  if (!o.drift || o.flow || o.glitch || !(ANIM.drawHeavy || ANIM.heavy)) return '';
+  const modes = [S.mode, S.layer && S.layer.mode].filter(m => DRIFT_JUMPY.includes(m) && !DRIFT_BEND.includes(m));
+  if (!modes.length) return '';
+  const n = symCopies().length, l2 = S.layer && S.layer.mode && S.layer.mode !== 'none';
+  const help = n >= 6 ? `Fewer symmetry copies (now ${n}) help most` : l2 ? 'Turning off Layer 2 or a lower Density helps' : 'A lower Density helps';
+  return `<b>Drift</b> can't re-route ${[...new Set(modes)].map(MODE_NAME).join(' and ')} live: this design is too heavy to redraw every frame, so it only dissolves into a new layout every ${DRIFT_KEY} s. ${help}; <b>Flow</b> is the calmer choice here.`;
+}
+function driftNoteUpdate() {
+  const t = driftNoteText();
+  if (t === ANIM.driftNote) return;
+  ANIM.driftNote = t;
+  const el = document.getElementById('an-drift-note');
+  el.innerHTML = t;
+  el.classList.toggle('hidden', !t);
 }
 
 // The animation itself, one frame at time now (ms): moves the clocks and the
@@ -583,6 +606,7 @@ function setPlaying(on, freeze = true) {
     document.getElementById('an-fps-v').textContent = '–';
     document.getElementById('an-fps').classList.remove('low');
     document.getElementById('an-tips').classList.add('hidden');
+    ANIM.driftNote = ''; { const dn = document.getElementById('an-drift-note'); dn.innerHTML = ''; dn.classList.add('hidden'); }
     ANIM.resAt = performance.now();               // let the frame average settle (≥ 1 s) before changing resolution
     ANIM.warpWarm = WARP_WARM;                    // and don't judge the bent frames by the first few
     if (!resume) animFresh();
