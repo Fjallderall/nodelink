@@ -683,7 +683,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 52d (25-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 52e (25-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -730,6 +730,17 @@ function setMenu(open, quiet) {
   update();
 }
 
+// Fold the toolbar away on a phone (the tab under it), or bring it back. Saved in LS_UI.
+// The canvas follows by itself: trackToolbar sees the toolbar height change.
+function setToolbar(open, quiet) {
+  document.body.classList.toggle('tb-min', !open);
+  document.getElementById('tb-fold').setAttribute('aria-expanded', open);
+  document.getElementById('tb-fold').title = open ? 'Fold the toolbar away' : 'Show the toolbar';
+  if (quiet) return;
+  if (!open && typeof endAnimHint === 'function') endAnimHint();   // its note points at a button that is gone
+  saveUi({ toolbar: open });
+}
+
 function setupShell() {
   let tab = 'design';
   try {
@@ -740,6 +751,8 @@ function setupShell() {
   syncHandleToggles();
   try { if ((JSON.parse(localStorage.getItem(LS_UI) || 'null') || {}).menu === false) setMenu(false, true); } catch (e) { /* ignore */ }
   document.getElementById('tb-menu').addEventListener('click', () => setMenu(document.body.classList.contains('menu-min')));
+  try { if ((JSON.parse(localStorage.getItem(LS_UI) || 'null') || {}).toolbar === false) setToolbar(false, true); } catch { /* ignore */ }
+  document.getElementById('tb-fold').addEventListener('click', () => setToolbar(document.body.classList.contains('tb-min')));
   document.querySelectorAll('.tabs .tab').forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
   setTab(document.querySelector(`.tabs .tab[data-tab="${tab}"]`) ? tab : 'design');
 

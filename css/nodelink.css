@@ -382,6 +382,8 @@ body.ambient.hide-cursor #ambient-exit { opacity: 0; }
 }
 /* Menu folded away: the canvas takes the whole window */
 body.menu-min aside { display: none; }
+/* Toolbar fold handle: phones only (the toolbar takes two rows there) */
+.tb-fold { display: none; }
 
 /* ── Phone, portrait ── */
 @media (max-width: 768px) {
@@ -460,6 +462,17 @@ body.menu-min aside { display: none; }
 /* ── Phone toolbar space: the canvas sizes itself to the area under the toolbar ── */
 @media (max-width: 768px), (orientation: landscape) and (max-height: 500px) {
   main { padding-top: calc(var(--tb-h, 42px) + 10px); }
+  /* Small tab under the toolbar's middle folds it away; folded, the tab stays at the top edge
+     and the canvas gets the room back (trackToolbar sees the toolbar height drop to 0) */
+  .tb-fold { display: block; position: absolute; left: 50%; top: calc(var(--tb-h, 0px) + 8px); transform: translateX(-50%); z-index: 46;
+    width: 48px; height: 18px; min-height: 0; min-width: 0; padding: 0; line-height: 1; font-size: 0.8rem; color: var(--muted);
+    background: rgba(23, 24, 26, 0.92); border: 1px solid var(--sepia); border-radius: 0 0 9px 9px; border-top: none; }
+  .tb-fold::before { content: ''; position: absolute; left: -6px; right: -6px; top: -4px; bottom: -14px; }   /* 44 px touch target */
+  .tb-fold:hover { color: var(--gold); background: var(--raise); }
+  .tb-fold[aria-expanded="false"] span { display: inline-block; transform: rotate(180deg); }
+  body.tb-min:not(.empty-start) .toolbar { display: none; }
+  body.tb-min:not(.empty-start) .tb-fold { top: 0; }
+  body.empty-start .tb-fold, body.ambient .tb-fold { display: none; }
 }
 
 /* ── Touch screens (any size): 44 px targets ── */

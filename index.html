@@ -387,7 +387,7 @@
 </aside>
 
 <main id="viewport">
-  <div class="toolbar" role="toolbar">
+  <div class="toolbar" id="toolbar" role="toolbar">
     <div class="tgroup">
       <button class="tbtn toggle" id="tb-menu" title="Show or hide the menu (\)" aria-pressed="true" aria-controls="sidebar"><span class="ti" aria-hidden="true">☰</span><span class="tl">Menu</span></button>
       <button class="tbtn" id="btn-undo" title="Undo (Ctrl+Z)"><span class="ti" aria-hidden="true">↶</span><span class="tl">Undo</span></button>
@@ -414,6 +414,7 @@
       <button class="tbtn" id="tb-export" title="Export: PNG, SVG, cut file, video (E)" aria-expanded="false"><span class="ti" aria-hidden="true">⤓</span><span class="tl">Export</span></button>
     </div>
   </div>
+  <button class="tb-fold" id="tb-fold" type="button" aria-expanded="true" aria-controls="toolbar" title="Fold the toolbar away"><span aria-hidden="true">▴</span></button>
 
   <div id="canvas-container">
     <canvas id="main-canvas"></canvas>
