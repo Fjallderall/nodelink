@@ -157,6 +157,17 @@ body.empty-start #tb-randomize { box-shadow: inset 0 0 0 2px var(--guide); anima
 @keyframes nudge { 50% { background: rgba(90, 169, 255, 0.18); } }
 @media (prefers-reduced-motion: reduce) { body.empty-start #tb-randomize { animation: none; } }
 body.empty-start .hint, body.empty-start .zoom-ctrl { display: none; }
+/* First visit, second step: after the first Randomise a note points at Animate */
+#anim-hint { position: fixed; z-index: 45; display: flex; flex-direction: column; align-items: center; gap: 2px; max-width: 220px; padding: 10px 16px; text-align: center; cursor: pointer;
+  border: 1px solid var(--guide); border-radius: 10px; background: var(--ink); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
+#anim-hint b { font-size: 0.95rem; font-weight: 600; color: var(--gold); }
+#anim-hint span { font-size: 0.78rem; color: var(--muted); }
+#anim-hint::before { content: ''; position: absolute; top: -6px; left: var(--caret-x, 50%); width: 10px; height: 10px; background: var(--ink);
+  border: solid var(--guide); border-width: 1px 0 0 1px; transform: translateX(-50%) rotate(45deg); }
+#anim-hint.above::before { top: auto; bottom: -6px; border-width: 0 1px 1px 0; }
+body.anim-hint #tb-anim { box-shadow: inset 0 0 0 2px var(--guide); animation: nudge 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { body.anim-hint #tb-anim { animation: none; } }
+body.ambient #anim-hint { display: none; }
 /* Help: tips beside the pointer while the ? button is on */
 #help-tip { position: fixed; z-index: 300; max-width: 280px; padding: 7px 10px; border-radius: var(--r); pointer-events: none;
   background: var(--raise); border: 1px solid var(--gold-dim); color: var(--bone); font-size: 0.78rem; line-height: 1.45; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }

@@ -21,7 +21,7 @@ STEPS = [
  ('select', 'micro-cilia', 'on'), ('check', 'micro-detail', False), ('input', 'vine-leaves', '50'), ('input', 'vine-flowers', '90'), ('select', 'vine-leaf', 'ivy'), ('select', 'vine-bloom', 'rose'),
  ('select', 'vine-season', 'autumn'), ('check', 'vine-tendrils', False), ('check', 'vine-veins', False), ('select', 'glass-style', 'tiffany'), ('select', 'glass-set', 'sea'), ('check', 'glass-light', False),
  ('check', 'curved', False), ('click', 'btn-undo'), ('click', 'btn-undo'), ('click', 'btn-redo'), ('key', 'Control+z'), ('key', 'Control+Shift+Z'), ('key', 'Control+y'),
- ('select', 'palette', 'tint'), ('check', 'l2-same', False), ('check', 'l2-same', True), ('color', 'ink', '#ff0000'), ('select', 'palette', 'stencil'), ('color', 'paper', '#00ff00'),
+ ('select', 'palette', 'tint'), ('select', 'l2-colour', 'own'), ('select', 'l2-colour', 'same'), ('color', 'ink', '#ff0000'), ('select', 'palette', 'stencil'), ('color', 'paper', '#00ff00'),
  ('click', 'btn-add-node'), ('click', 'btn-reset-nodes'), ('nodedrag', None), ('click', 'btn-toggle-nodes'), ('click', 'tb-shuffle'), ('click', 'tb-randomize'), ('click', 'btn-auto-place'), ('click', 'btn-fav'),
  ('select', 'ex-frame', 'page'), ('fill', 'ex-cm', '15'), ('select', 'ex-dpi', '600'), ('check', 'ex-transparent', False), ('fill', 'ex-minmm', '1.2'), ('fill', 'ex-mingap', '0.9'), ('fill', 'ex-minpiece', '3'),
  ('select', 'ex-cutstyle', 'hairline'), ('select', 'ex-cutpreset', 'lply'), ('click', 'cut-collapse'),

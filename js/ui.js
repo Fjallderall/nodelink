@@ -683,7 +683,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 52c (25-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 52d (25-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -1147,7 +1147,11 @@ function bindNodeControls() {
     commit();
   });
 
-  document.getElementById('tb-randomize').addEventListener('click', () => { randomizeAll(); commit(); });
+  document.getElementById('tb-randomize').addEventListener('click', () => {
+    const first = document.body.classList.contains('empty-start');   // the very first design: point at Animate next
+    randomizeAll(); commit();
+    if (first) startAnimHint();
+  });
 
   document.getElementById('btn-auto-place').addEventListener('click', () => {
     S.nodes = autoPlace(S.nodes);

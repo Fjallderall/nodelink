@@ -3,6 +3,10 @@
 // and an arrow to the Randomise button (body.empty-start). The first design
 // change of any kind (Randomise, a control, Load .json) ends it, through
 // commit() → endEmptyStart().
+// Second step: when that first change is the Randomise button, a note
+// points at Animate (startAnimHint). It goes when Animate is pressed
+// (setPlaying), the note is clicked or Esc is pressed; never shown again
+// after a reload (the design is saved by then).
 // Help (the ? button, or the ? key): while on, pointing at any control shows
 // what it does next to the pointer (its title). On touch a first tap shows
 // the help and a second tap on the same control uses it (a slider holds
@@ -93,6 +97,38 @@ function linkLabelHelp() {
     if (el.title && !lab.title) lab.title = el.title;
     else if (lab.title && !el.title) el.title = lab.title;
   });
+}
+
+function startAnimHint() {
+  const el = helpEl('anim-hint'), btn = helpEl('tb-anim');
+  if (!el || !btn.getBoundingClientRect().width) return;          // no Animate button in view: nothing to point at
+  el.classList.remove('hidden');
+  document.body.classList.add('anim-hint');
+  placeAnimHint();
+  window.addEventListener('resize', placeAnimHint);
+  window.addEventListener('keydown', animHintKey);
+  el.addEventListener('click', endAnimHint);
+}
+// Below the Animate button (above it when there is no room), the caret on its centre
+function placeAnimHint() {
+  const el = helpEl('anim-hint'), btn = helpEl('tb-anim').getBoundingClientRect();
+  if (el.classList.contains('hidden') || !btn.width) return;
+  const w = el.offsetWidth, h = el.offsetHeight, below = btn.bottom + 12 + h < window.innerHeight - 8;
+  const mid = btn.left + btn.width / 2, x = Math.max(8, Math.min(window.innerWidth - w - 8, mid - w / 2));
+  el.style.left = x + 'px';
+  el.style.top = (below ? btn.bottom + 12 : btn.top - 12 - h) + 'px';
+  el.classList.toggle('above', !below);
+  el.style.setProperty('--caret-x', (mid - x) + 'px');
+}
+function animHintKey(e) { if (e.key === 'Escape') endAnimHint(); }
+function endAnimHint() {
+  const el = helpEl('anim-hint');
+  if (!el || el.classList.contains('hidden')) return;
+  el.classList.add('hidden');
+  document.body.classList.remove('anim-hint');
+  window.removeEventListener('resize', placeAnimHint);
+  window.removeEventListener('keydown', animHintKey);
+  el.removeEventListener('click', endAnimHint);
 }
 
 function endEmptyStart() {

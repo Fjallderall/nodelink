@@ -631,6 +631,7 @@ function animFresh() {
   ANIM.rpTime = 0; ANIM.clk2.rp = 0;            // Ripples start from the still's rings
 }
 function setPlaying(on, freeze = true) {
+  if (on) endAnimHint();                       // the first-visit note pointing at Animate
   // Resume where it paused, when the design is still the one it paused on
   const resume = on && ANIM.frozen && ANIM.frame && dlKey() === ANIM.frozenKey;
   if (on && !resume) clearAnimFrame();
