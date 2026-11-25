@@ -343,6 +343,11 @@ body.ambient.hide-cursor #ambient-exit { opacity: 0; }
 .an-tips li + li { margin-top: 3px; }
 .an-tips-x { position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border: 0; border-radius: var(--r); background: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; line-height: 1; }
 .an-tips-x:hover, .an-tips-x:focus-visible { color: var(--gold); background: var(--sepia); }
+/* Animation panel with two layers: 'Whole design', then a fold-away section per layer */
+.an-h { font-size: 0.8rem; font-weight: 600; color: var(--bone); margin: 4px 0 8px; }
+.an-layer { margin-top: 12px; }
+.an-layer.single > summary { display: none; }
+.an-layer > .anim-grid { margin-top: 2px; }
 /* Suggested animations: a small dot, not a colour change */
 .anim-grid .chk.rec::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--guide); margin-left: 2px; }
 

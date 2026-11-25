@@ -13,7 +13,6 @@ const ANIM = {
   playing: false, ambient: false, live: false, frame: null,
   opts: { draw: true, drift: true, glitch: false, flow: false, dewroll: true, blink: false, wind: false, bloom: false, rings: false, current: false, twinkle: false, strikes: false, life: false, sun: false, ripples: false, rpDrip: false, breathe: false, petals: false, seasons: false, morph: false, spin: false, pulse: false, hue: false, speed: 1, driftAmt: 1, glyphP: 3.5, dewSpd: 1, curSpd: 1, curRate: 1, twRate: 1, shoot: 1, skRate: 1, skSpd: 1, lfSpd: 1, sunSpd: 1, rpSpd: 1, brSpd: 1, ptRate: 1, ssSpd: 1, spSpd: 1 },
   opts2: {},                      // Layer 2's own values for the per-layer options (ANIM_L_KEYS); a key missing here follows opts (Both)
-  scope: 'both',                  // which layer(s) the per-layer controls edit: 'both' | 'l1' | 'l2' (not saved)
   clk2: { tw: 0, lf: 0, sun: 0, rp: 0, br: 0 }, brAmp2: 0,   // Layer 2's effect clocks and Breathing fade (Layer 1's are the fields above)
   frozen: false, frozenKey: '',   // paused: the last frame stays on screen until the design changes
   exporting: false,               // rendering the paused frame for an export (no blit cache)
@@ -703,74 +702,109 @@ function syncModeInfo() {
   if (info) el.innerHTML = `${info[0]} <b>Suits:</b> ${info[1].map(k => ANIM_NAMES[k]).join(', ')}.`;
   const modes = [S.mode, S.layer.mode].filter(x => MODE_INFO[x]);
   const rec = new Set([[S.mode, 1], [S.layer.mode, 2]].filter(([x]) => MODE_INFO[x]).flatMap(([x, l]) => modeInfo(x, l)[1]));
-  ANIM_BOOLS.forEach(k =>
+  // the dot: global controls by both layers' modes, a layer's own controls by its mode
+  const recOf = (x, l) => new Set(MODE_INFO[x] ? modeInfo(x, l)[1] : []);
+  ANIM_BOOLS.filter(k => !ANIM_L_BOOLS.includes(k)).forEach(k =>
     document.getElementById('an-' + k).closest('label').classList.toggle('rec', rec.has(k)));
+  [[1, S.mode], [2, S.layer.mode]].forEach(([li, x]) => ANIM_L_BOOLS.forEach(k =>
+    document.getElementById(anId(k, li)).closest('label').classList.toggle('rec', recOf(x, li).has(k))));
   document.getElementById('an-rec').textContent = 'Suggested for ' + modes.map(MODE_NAME).join(' + ') + ' (highlighted)'
     + (rec.has('swap') ? '; Symbol swap shows with Flow' : '') + '.';
+}
+
+// The panel's sections. Layer 1's per-layer controls keep their ids, Layer 2's
+// copies end in -2 (buildAnimSections). The global controls stay where they were.
+function buildAnimSections() {
+  const $ = id => document.getElementById(id);
+  const panel = $('anim-panel');
+  const mk = li => {
+    const d = document.createElement('details');
+    d.className = 'group an-layer'; d.id = 'an-sec' + li; d.open = true;
+    d.innerHTML = `<summary id="an-sec${li}-t"></summary><div class="anim-grid" id="an-sec${li}-grid"></div><div id="an-sec${li}-sl"></div>`;
+    panel.appendChild(d);
+    return d;
+  };
+  mk(1); mk(2);
+  const copy = (el, to1, to2) => {
+    const c = el.cloneNode(true);
+    [c, ...c.querySelectorAll('[id]')].forEach(n => { if (n.id) n.id += '-2'; });
+    c.querySelectorAll('label[for]').forEach(n => n.htmlFor += '-2');
+    $(to1).appendChild(el); $(to2).appendChild(c);
+  };
+  ANIM_L_BOOLS.forEach(k => copy($('an-' + k).closest('label'), 'an-sec1-grid', 'an-sec2-grid'));
+  ANIM_L_SLIDERS.forEach(f => copy($('an-' + f[1] + '-row'), 'an-sec1-sl', 'an-sec2-sl'));
+  copy($('an-rpstyle-row'), 'an-sec1-sl', 'an-sec2-sl');
 }
 
 // Animation options show only when they would do something for this design
 // (hidden options keep their values)
 function syncAnimRelevance() {
   const $ = id => document.getElementById(id);
-  const hasL2 = !!S.layer.mode && S.layer.mode !== 'none';
-  if (!hasL2 && ANIM.scope !== 'both') { ANIM.scope = 'both'; syncAnimControls(); return; }   // Layer 2 gone: back to Both, controls redrawn
-  $('an-scope-row').classList.toggle('hidden', !hasL2);
-  $('an-scope').value = ANIM.scope;
-  $('an-scope').querySelector('[value="l1"]').textContent = 'Layer 1 · ' + MODE_NAME(S.mode);
-  $('an-scope').querySelector('[value="l2"]').textContent = 'Layer 2 · ' + (hasL2 ? MODE_NAME(S.layer.mode) : '');
-  $('an-scope-note').classList.toggle('hidden', ANIM.scope === 'both');
-  const o = scopeView(), sc = ANIM.scope;
-  const modes = sc === 'l1' ? [S.mode] : sc === 'l2' ? [S.layer.mode] : [S.mode, S.layer.mode];
+  if (!$('an-sec1')) return;                 // the sections are built in setupAnim
+  const hasL2 = hasLayer2();
+  const o = ANIM.opts, o2 = animO2();
+  const modesAll = [S.mode, S.layer.mode];
   const moving = o.drift || o.flow || o.glitch;
+  $('an-global-h').classList.toggle('hidden', !hasL2);
+  // one section per layer; with a single layer it has no heading
+  const eyesOf = li => li === 1 ? S.mode === 'microscope' && (S.micro || {}).specimen === 'organisms'
+    : S.layer.mode === 'microscope' && ((S.layer.micro || S.micro || {}).specimen === 'organisms');
+  [1, 2].forEach(li => {
+    const sec = $('an-sec' + li), m = li === 1 ? S.mode : S.layer.mode, ol = li === 1 ? o : o2;
+    sec.classList.toggle('hidden', li === 2 && !hasL2);
+    sec.classList.toggle('single', !hasL2);
+    if (!hasL2) sec.open = true;
+    $('an-sec' + li + '-t').textContent = `Layer ${li} · ${MODE_NAME(m)}`;
+    const show = (id, on, row) => { const el = $(anId(id, li)); (row ? el : el.closest('label')).classList.toggle('hidden', !on); };
+    show('blink', eyesOf(li)); show('wind', WIND_MODES.includes(m)); show('rings', m === 'arcane');
+    show('current', CURRENT_MODES.includes(m)); show('twinkle', TWINKLE_MODES.includes(m));
+    show('strikes', STRIKE_MODES.includes(m)); show('life', LIFE_MODES.includes(m)); show('sun', SUN_MODES.includes(m));
+    show('breathe', BREATHE_MODES.includes(m)); show('ripples', m === 'water'); show('petals', PETAL_MODES.includes(m));
+    const fxOn = { cur: ol.current && CURRENT_MODES.includes(m), tw: ol.twinkle && TWINKLE_MODES.includes(m),
+      sk: ol.strikes && STRIKE_MODES.includes(m), lf: ol.life && LIFE_MODES.includes(m), su: ol.sun && SUN_MODES.includes(m),
+      rp: ol.ripples && m === 'water', br: ol.breathe && BREATHE_MODES.includes(m), pt: ol.petals && PETAL_MODES.includes(m) };
+    [['curspd', 'cur'], ['currate', 'cur'], ['twrate', 'tw'], ['shoot', 'tw'], ['skrate', 'sk'], ['skspd', 'sk'], ['lfspd', 'lf'], ['sunspd', 'su'], ['rpspd', 'rp'], ['rpstyle', 'rp'], ['brspd', 'br'], ['ptrate', 'pt']]
+      .forEach(([id, fx]) => $(anId(id + '-row', li)).classList.toggle('hidden', !fxOn[fx]));
+  });
+  // the whole-design block
   const layerDew = S.layer.dew !== undefined ? S.layer.dew : S.dew;
   const dew = (S.mode === 'spiderweb' && S.dew > 0) || (S.layer.mode === 'spiderweb' && layerDew > 0);
   $('an-dewroll').closest('label').classList.toggle('hidden', !dew);
   $('an-dewspd-row').classList.toggle('hidden', !dew || !o.dewroll);
-  // Blink needs nuclei: only the Microorganisms specimen has them
-  const eyes = (sc !== 'l2' && S.mode === 'microscope' && (S.micro || {}).specimen === 'organisms') || (sc !== 'l1' && S.layer.mode === 'microscope' && ((S.layer.micro || S.micro || {}).specimen === 'organisms'));
-  $('an-blink').closest('label').classList.toggle('hidden', !eyes);
-  $('an-wind').closest('label').classList.toggle('hidden', !modes.some(m => WIND_MODES.includes(m)));
-  $('an-bloom').closest('label').classList.toggle('hidden', !modes.includes('vine'));
-  $('an-rings').closest('label').classList.toggle('hidden', !modes.includes('arcane'));
-  $('an-current').closest('label').classList.toggle('hidden', !modes.some(m => CURRENT_MODES.includes(m)));
-  $('an-twinkle').closest('label').classList.toggle('hidden', !modes.some(m => TWINKLE_MODES.includes(m)));
-  $('an-strikes').closest('label').classList.toggle('hidden', !modes.some(m => STRIKE_MODES.includes(m)));
-  $('an-life').closest('label').classList.toggle('hidden', !modes.some(m => LIFE_MODES.includes(m)));
-  $('an-sun').closest('label').classList.toggle('hidden', !modes.some(m => SUN_MODES.includes(m)));
-  $('an-breathe').closest('label').classList.toggle('hidden', !modes.some(m => BREATHE_MODES.includes(m)));
-  $('an-ripples').closest('label').classList.toggle('hidden', !modes.includes('water'));
-  $('an-petals').closest('label').classList.toggle('hidden', !modes.some(m => PETAL_MODES.includes(m)));
-  $('an-seasons').closest('label').classList.toggle('hidden', !modes.includes('vine'));
-  const fxOn = { cur: o.current && modes.some(m => CURRENT_MODES.includes(m)), tw: o.twinkle && modes.some(m => TWINKLE_MODES.includes(m)),
-    sk: o.strikes && modes.some(m => STRIKE_MODES.includes(m)), lf: o.life && modes.some(m => LIFE_MODES.includes(m)),
-    su: o.sun && modes.some(m => SUN_MODES.includes(m)), rp: o.ripples && modes.includes('water'), br: o.breathe && modes.some(m => BREATHE_MODES.includes(m)),
-    pt: o.petals && modes.some(m => PETAL_MODES.includes(m)), ss: o.seasons && modes.includes('vine'), sp: o.spin };
-  [['curspd', 'cur'], ['currate', 'cur'], ['twrate', 'tw'], ['shoot', 'tw'], ['skrate', 'sk'], ['skspd', 'sk'], ['lfspd', 'lf'], ['sunspd', 'su'], ['rpspd', 'rp'], ['rpstyle', 'rp'], ['brspd', 'br'], ['ptrate', 'pt'], ['ssspd', 'ss'], ['spspd', 'sp']]
-    .forEach(([id, fx]) => $('an-' + id + '-row').classList.toggle('hidden', !fxOn[fx]));
+  $('an-bloom').closest('label').classList.toggle('hidden', !modesAll.includes('vine'));
+  $('an-seasons').closest('label').classList.toggle('hidden', !modesAll.includes('vine'));
+  $('an-ssspd-row').classList.toggle('hidden', !(o.seasons && modesAll.includes('vine')));
+  $('an-spspd-row').classList.toggle('hidden', !o.spin);
   $('an-driftamt-row').classList.toggle('hidden', !moving);
   $('an-drift').closest('label').classList.toggle('hidden', o.flow && !o.glitch);   // Flow keyframes replace live drift
-  $('an-glyphp-row').classList.toggle('hidden', !moving || !modes.some(m => m === 'chaosgate' || m === 'arcane'));
+  $('an-glyphp-row').classList.toggle('hidden', !moving || !modesAll.some(m => m === 'chaosgate' || m === 'arcane'));
   syncModeInfo();
 }
 
 function syncAnimControls() {
+  const $ = id => document.getElementById(id);
+  if (!$('an-sec1')) return;
   syncAnimRelevance();
-  const o = scopeView();
-  ANIM_BOOLS.forEach(k => { const cb = document.getElementById('an-' + k); cb.checked = o[k]; cb.indeterminate = animMixed(k); });
-  document.getElementById('an-speed').value = o.speed;
-  document.getElementById('an-speed-v').textContent = o.speed.toFixed(2).replace(/0$/, '') + '×';
-  document.getElementById('an-driftamt').value = o.driftAmt;
-  document.getElementById('an-driftamt-v').textContent = o.driftAmt.toFixed(2).replace(/0$/, '') + '×';
-  document.getElementById('an-glyphp').value = o.glyphP;
-  document.getElementById('an-glyphp-v').textContent = o.glyphP > 0 ? o.glyphP.toFixed(1).replace(/\.0$/, '') + ' s' : 'off';
-  ANIM_FX_SLIDERS.forEach(([k, id]) => {
-    document.getElementById('an-' + id).value = o[k];
-    document.getElementById('an-' + id + '-v').textContent = animMixed(k) ? 'mixed' : k === 'shoot' && o[k] === 0 ? 'off' : o[k].toFixed(2).replace(/0$/, '') + '×';
+  const o = ANIM.opts, o2 = animO2();
+  const fmt = (k, v) => k === 'shoot' && v === 0 ? 'off' : v.toFixed(2).replace(/0$/, '') + '×';
+  ANIM_BOOLS.filter(k => !ANIM_L_BOOLS.includes(k)).forEach(k => { $('an-' + k).checked = o[k]; });
+  [1, 2].forEach(li => {
+    const ol = li === 1 ? o : o2;
+    ANIM_L_BOOLS.forEach(k => { $(anId(k, li)).checked = ol[k]; });
+    ANIM_L_SLIDERS.forEach(([k, id]) => { $(anId(id, li)).value = ol[k]; $(anId(id + '-v', li)).textContent = fmt(k, ol[k]); });
+    $(anId('rpstyle', li)).value = ol.rpDrip ? 'drip' : 'steady';
   });
-  document.getElementById('an-rpstyle').value = o.rpDrip ? 'drip' : 'steady';
-  document.getElementById('an-dewspd').value = o.dewSpd;
-  document.getElementById('an-dewspd-v').textContent = o.dewSpd.toFixed(2).replace(/0$/, '') + '×';
+  ANIM_FX_SLIDERS.filter(f => !ANIM_L_KEYS.includes(f[0])).forEach(([k, id]) => {
+    $('an-' + id).value = o[k]; $('an-' + id + '-v').textContent = fmt(k, o[k]);
+  });
+  $('an-speed').value = o.speed;
+  $('an-speed-v').textContent = o.speed.toFixed(2).replace(/0$/, '') + '×';
+  $('an-driftamt').value = o.driftAmt;
+  $('an-driftamt-v').textContent = o.driftAmt.toFixed(2).replace(/0$/, '') + '×';
+  $('an-glyphp').value = o.glyphP;
+  $('an-glyphp-v').textContent = o.glyphP > 0 ? o.glyphP.toFixed(1).replace(/\.0$/, '') + ' s' : 'off';
+  $('an-dewspd').value = o.dewSpd;
+  $('an-dewspd-v').textContent = o.dewSpd.toFixed(2).replace(/0$/, '') + '×';
 }
 
 // ── Ambient: your design and animation settings, full screen, no UI.
@@ -936,30 +970,28 @@ function setAnimOpts(a) {
 // What is saved: the options plus Layer 2's own values
 function animSave() { return { ...ANIM.opts, layer2: { ...ANIM.opts2 } }; }
 
-// ── Animate scope: the per-layer controls edit Both layers, Layer 1 or Layer 2.
-// Layer 2's values sit in ANIM.opts2 only where they differ from ANIM.opts.
+// ── Per-layer animation settings. The panel has a 'Whole design' block (the
+// global controls) and one section per layer; Layer 2's values sit in
+// ANIM.opts2 only where they differ from ANIM.opts.
 // (Drift, Glitch, Flow, Morph, Spin, Colour cycle, Rolling dew, Bloom and
-// Seasons are not per layer yet and always edit both.)
+// Seasons are not per layer yet: they are in the Whole design block.)
 const ANIM_L_KEYS = ['draw', 'pulse', 'blink', 'wind', 'rings', 'current', 'twinkle', 'strikes', 'life', 'sun', 'ripples', 'breathe', 'petals', 'rpDrip',
   'curSpd', 'curRate', 'twRate', 'shoot', 'skRate', 'skSpd', 'lfSpd', 'sunSpd', 'rpSpd', 'brSpd', 'ptRate'];
-function animSet(k, v) {
-  const o = ANIM.opts, o2 = ANIM.opts2, sc = ANIM.scope;
+const ANIM_L_BOOLS = ANIM_BOOLS.filter(k => ANIM_L_KEYS.includes(k));
+const ANIM_L_SLIDERS = ANIM_FX_SLIDERS.filter(f => ANIM_L_KEYS.includes(f[0]));
+// sc: 'both' (a global control, or a design without Layer 2), 'l1' or 'l2'
+function animSet(k, v, sc = 'both') {
+  const o = ANIM.opts, o2 = ANIM.opts2;
   if (!ANIM_L_KEYS.includes(k) || sc === 'both') { o[k] = v; delete o2[k]; return; }
   if (sc === 'l2') o2[k] = v;
   else { if (!(k in o2)) o2[k] = o[k]; o[k] = v; }     // Layer 2 keeps what it had
   if (o2[k] === o[k]) delete o2[k];
 }
-// True when the layers differ in k and the scope is Both
-function animMixed(k) { return ANIM.scope === 'both' && k in ANIM.opts2 && ANIM.opts2[k] !== ANIM.opts[k]; }
-// The options as the controls show them for the scope
-function scopeView() {
-  const o = { ...ANIM.opts }, o2 = ANIM.opts2, sc = ANIM.scope;
-  ANIM_L_KEYS.forEach(k => {
-    if (sc === 'l2' && k in o2) o[k] = o2[k];
-    else if (sc === 'both' && k in o2 && typeof o[k] === 'boolean') o[k] = o[k] || o2[k];
-  });
-  return o;
-}
+// Which layer a section's controls edit: li 1 / 2
+const hasLayer2 = () => !!S.layer.mode && S.layer.mode !== 'none';
+const layerScope = li => !hasLayer2() ? 'both' : li === 2 ? 'l2' : 'l1';
+// Element id of a per-layer control: Layer 2's copy has -2
+const anId = (id, li) => 'an-' + id + (li === 2 ? '-2' : '');
 
 // A preset (Save .json, favourites) is the design plus its animation settings.
 // The animation settings stay out of getDesign(), so Undo does not touch them.
@@ -976,6 +1008,7 @@ function applyPresetFile(d) {
 
 function setupAnim() {
   const $ = id => document.getElementById(id);
+  buildAnimSections();
   // Fold / unfold the settings: Settings in the toolbar (desktop) or ▾ in the sheet (phone)
   const foldPanel = () => {
     const min = $('anim-panel').classList.toggle('min');
@@ -1005,30 +1038,34 @@ function setupAnim() {
     if (r.width && r.height) ANIM.pointer = { fx: (e.clientX - r.left) / r.width, fy: (e.clientY - r.top) / r.height };
   }, { passive: true });
   $('ambient-exit').addEventListener('click', exitAmbient);
-  ANIM_BOOLS.forEach(k => $('an-' + k).addEventListener('change', e => {
-    animSet(k, e.target.checked); e.target.indeterminate = false;
+  // li: 1 or 2 for a layer's own copy of a control, 0 for a global control
+  const boolChange = (k, li) => e => {
+    animSet(k, e.target.checked, li ? layerScope(li) : 'both');
     // Flow and Glitch exclude each other
     const other = { flow: 'glitch', glitch: 'flow' }[k];
     if (other && e.target.checked) { ANIM.opts[other] = false; $('an-' + other).checked = false; }
-    syncAnimRelevance();
+    syncAnimControls();
     if (k === 'morph' || k === 'draw') { ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (animAnyDraw() ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH); }
     saveUi({ anim: animSave() });
-  }));
-  $('an-scope').addEventListener('change', e => { ANIM.scope = e.target.value; syncAnimControls(); });
-  $('an-rpstyle').addEventListener('change', e => {
-    animSet('rpDrip', e.target.value === 'drip');
-    saveUi({ anim: animSave() });
+  };
+  ANIM_BOOLS.forEach(k => {
+    if (ANIM_L_BOOLS.includes(k)) [1, 2].forEach(li => $(anId(k, li)).addEventListener('change', boolChange(k, li)));
+    else $('an-' + k).addEventListener('change', boolChange(k, 0));
   });
+  [1, 2].forEach(li => $(anId('rpstyle', li)).addEventListener('change', e => {
+    animSet('rpDrip', e.target.value === 'drip', layerScope(li));
+    saveUi({ anim: animSave() });
+  }));
   $('an-driftamt').addEventListener('input', e => {
     ANIM.opts.driftAmt = parseFloat(e.target.value);
     syncAnimControls();
     saveUi({ anim: animSave() });
   });
-  ANIM_FX_SLIDERS.forEach(([k, id]) => $('an-' + id).addEventListener('input', e => {
-    animSet(k, parseFloat(e.target.value));
+  ANIM_FX_SLIDERS.forEach(([k, id]) => (ANIM_L_KEYS.includes(k) ? [1, 2] : [0]).forEach(li => $(li ? anId(id, li) : 'an-' + id).addEventListener('input', e => {
+    animSet(k, parseFloat(e.target.value), li ? layerScope(li) : 'both');
     syncAnimControls();
     saveUi({ anim: animSave() });
-  }));
+  })));
   $('an-dewspd').addEventListener('input', e => {
     ANIM.opts.dewSpd = parseFloat(e.target.value);
     syncAnimControls();

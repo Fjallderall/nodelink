@@ -417,11 +417,6 @@
 
   <div class="anim-panel hidden" id="anim-panel" aria-label="Animation">
     <div class="sheet-head"><span>Animation</span><button class="sheet-min" id="an-min" aria-expanded="true" title="Fold the animation settings away">▾</button></div>
-    <div class="anim-speed" id="an-scope-row" title="Which layer the effect controls below edit. Drift, Glitch, Flow, Morph, Spin, Colour cycle, Rolling dew, Bloom and Seasons always act on both layers for now.">
-      <label for="an-scope">Animate</label>
-      <select id="an-scope"><option value="both">Both layers</option><option value="l1">Layer 1</option><option value="l2">Layer 2</option></select>
-    </div>
-    <p class="an-note hidden" id="an-scope-note">The effect controls edit this layer only. Drift, Glitch, Flow, Morph, Spin, Colour cycle, Rolling dew, Bloom and Seasons still act on both layers.</p>
     <p class="an-rec" id="an-rec"></p>
     <p class="an-fps" id="an-fps" aria-live="off"><b id="an-fps-v">–</b> fps</p>
     <p class="an-note hidden" id="an-drift-note" role="status"></p>
@@ -430,6 +425,7 @@
       <p>Under 24 fps. What would help most for this design:</p>
       <ul id="an-tips-list"></ul>
     </div>
+    <p class="an-h hidden" id="an-global-h">Whole design</p>
     <div class="anim-grid">
       <label class="chk" title="Each node's part draws out from it, holds and draws back, in a random order and at a varying pace; the picture never goes empty. Vines grow in stages: stems first, then the leaves unfold and the flowers open. With Flow or Morph the whole design draws in once."><input type="checkbox" id="an-draw"> Draw on</label>
       <label class="chk" title="The nodes wander; the pattern re-routes around them as they move, like dragging"><input type="checkbox" id="an-drift"> Drift</label>
