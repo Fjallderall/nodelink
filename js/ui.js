@@ -683,7 +683,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 52e (25-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 52f (25-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -739,7 +739,11 @@ function setToolbar(open, quiet) {
   if (quiet) return;
   if (!open && typeof endAnimHint === 'function') endAnimHint();   // its note points at a button that is gone
   saveUi({ toolbar: open });
+  // The bottom menu folds with the toolbar; unfolding brings it back unless it was already hidden with ☰
+  if (!open) { menuBeforeFold = !document.body.classList.contains('menu-min'); setMenu(false); }
+  else setMenu(menuBeforeFold);
 }
+let menuBeforeFold = true;
 
 function setupShell() {
   let tab = 'design';
