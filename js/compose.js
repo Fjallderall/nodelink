@@ -558,9 +558,10 @@ function symLists(dl, F) {
   // Breathing: a warp per Foam list, from its own bubbles
   const breath = (ops, m, f) => f && f.br != null && BREATHE_MODES.includes(m) ? breathWarp(ops, f.br, f.brA) : null;
   if (F) F.items.forEach(it => {
-    if (it.alpha <= 0.003) return;
-    if (it.dl.layer) lists.push([it.dl.layer, alpha * it.alpha * strikeRest(S.layer.mode, F.l2 || F), it.prog, addWarps(addWarps(it.warp, it.windL), breath(it.dl.layer, S.layer.mode, F.l2 || F)), true, alpha, F.l2 || F]);
-    lists.push([it.dl.main, it.alpha * strikeRest(S.mode, F), it.prog, addWarps(addWarps(it.warp, it.windM), breath(it.dl.main, S.mode, F)), false, 1, F]);
+    const a2 = it.alpha2 ?? it.alpha;
+    if (it.alpha <= 0.003 && a2 <= 0.003) return;
+    if (it.dl.layer) lists.push([it.dl.layer, alpha * a2 * strikeRest(S.layer.mode, F.l2 || F), it.prog2 ?? it.prog, addWarps(addWarps(it.warp, it.windL), breath(it.dl.layer, S.layer.mode, F.l2 || F)), true, alpha, F.l2 || F]);
+    if (it.alpha > 0.003) lists.push([it.dl.main, it.alpha * strikeRest(S.mode, F), it.prog, addWarps(addWarps(it.warp, it.windM), breath(it.dl.main, S.mode, F)), false, 1, F]);
   });
   else { if (dl.layer) lists.push([dl.layer, alpha, 1, null, true, alpha]); lists.push([dl.main, 1, 1, null, false, 1]); }
   return lists;

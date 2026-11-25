@@ -25,7 +25,7 @@ INIT = """
 BASE = ("S.nodes=[{x:-160,y:-60},{x:140,y:-90},{x:20,y:150},{x:-40,y:-10},{x:190,y:110}];"
         "S.seed=4242; S.sigma=60; S.density=6; S.layer={mode:'none',density:5,weight:0.8,strength:100};"
         "S.sym={n:1,mirror:false};")
-OFF = "Object.keys(ANIM.opts).forEach(k => { if (ANIM.opts[k] === true) ANIM.opts[k] = false; });"
+OFF = "Object.keys(ANIM.opts).forEach(k => { if (ANIM.opts[k] === true) ANIM.opts[k] = false; }); Object.keys(ANIM.opts2).forEach(k => delete ANIM.opts2[k]);"
 
 SCEN = {
     'vine-seasons': "S.mode='vine'; S.sym={n:6,mirror:true}; Object.assign(ANIM.opts,{draw:true,bloom:true,seasons:true,petals:true,wind:true,ptRate:3,ssSpd:4});",
@@ -61,6 +61,11 @@ SCEN_EXTRA = {
     'scope-both': "S.mode='pcb'; S.layer={mode:'nebula',density:4,weight:0.8,strength:70}; Object.assign(ANIM.opts,{drift:false,draw:false,current:true,twinkle:true});",
     'scope-none': "S.mode='pcb'; S.layer={mode:'nebula',density:4,weight:0.8,strength:70}; Object.assign(ANIM.opts,{drift:false,draw:false,current:false,twinkle:false});",
     'scope-l2-speed': "S.mode='constellation'; S.layer={mode:'constellation',density:5,weight:0.8,strength:70}; S.seed=777; Object.assign(ANIM.opts,{drift:false,draw:false,twinkle:true,twRate:1}); Object.assign(ANIM.opts2,{twRate:3});",
+    'scope-draw-pulse-both': "S.mode='pcb'; S.layer={mode:'nebula',density:4,weight:0.8,strength:70}; Object.assign(ANIM.opts,{drift:false,draw:true,pulse:true});",
+    # Phase 52: Draw on and Pulse per layer (PCB + Nebula)
+    'scope-draw-l1': "S.mode='pcb'; S.layer={mode:'nebula',density:4,weight:0.8,strength:70}; Object.assign(ANIM.opts,{drift:false,draw:true,pulse:false}); Object.assign(ANIM.opts2,{draw:false});",
+    'scope-draw-l2': "S.mode='pcb'; S.layer={mode:'nebula',density:4,weight:0.8,strength:70}; Object.assign(ANIM.opts,{drift:false,draw:false,pulse:false}); Object.assign(ANIM.opts2,{draw:true});",
+    'scope-pulse-l2': "S.mode='pcb'; S.layer={mode:'nebula',density:4,weight:0.8,strength:70}; Object.assign(ANIM.opts,{drift:false,draw:false,pulse:false}); Object.assign(ANIM.opts2,{pulse:true});",
 }
 if len(sys.argv) > 3 and sys.argv[3] == 'extra': SCEN = SCEN_EXTRA
 

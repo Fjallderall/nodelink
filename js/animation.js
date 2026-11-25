@@ -331,6 +331,8 @@ function modeOn(list, li) {
 }
 // Layer 2's options: Layer 1's (ANIM.opts) with its own values over them
 function animO2() { return { ...ANIM.opts, ...ANIM.opts2 }; }
+// Draw on is on for at least one layer (the draw-on clock and its timing are shared)
+function animAnyDraw() { return ANIM.opts.draw || animO2().draw; }
 
 // Morph: next seed, old design fades out under the new one
 // With Flow the new seed fades in softly instead (draw-on progress kept)
@@ -341,7 +343,7 @@ function animMorph(o, t) {
   if (ANIM.cur) {
     ANIM.prev = ANIM.cur; ANIM.prevBase = ANIM.curBase; ANIM.fadeAt = t; ANIM.prevMorph = true;
     if (o.flow) { ANIM.fadeDur = FLOW_MORPH; ANIM.prevKey = true; }
-    else { ANIM.fadeDur = o.draw ? ANIM_DRAW : ANIM_XFADE; ANIM.prevKey = false; }
+    else { ANIM.fadeDur = animAnyDraw() ? ANIM_DRAW : ANIM_XFADE; ANIM.prevKey = false; }
   }
   ANIM.seedOff++;
   if (!o.flow) ANIM.cycleAt = t;
@@ -430,8 +432,9 @@ function animRerecord(o, t, now) {
 // once; otherwise it loops per node (np: progress per node, NODE_DRAW).
 // Returns { items, np, pulse }.
 function animItems(o, t, now, warp) {
+  const o2 = animO2();
   let prog = 1, np = null;
-  if (o.draw) {
+  if (o.draw || o2.draw) {
     const ct = t - ANIM.cycleAt;
     if (o.morph || o.flow) { const u = Math.min(1, ct / ANIM_DRAW); prog = u * u * (3 - 2 * u); }
     else {
@@ -440,6 +443,9 @@ function animItems(o, t, now, warp) {
     }
   }
   const items = [];
+  // One item per recording; each layer reads its own alpha and draw-on progress
+  // (a layer without Draw on shows the design complete, one without Pulse does not dim)
+  const mk = (dl, a1, a2, p, extra) => ({ dl, alpha: a1, alpha2: a2, prog: o.draw ? p : 1, prog2: o2.draw ? p : 1, ...extra });
   // Crossfade out the previous design (morph, or a drift keyframe). A drift
   // keyframe also fades the new one in and keeps the draw-on progress.
   let curIn = 1;
@@ -449,12 +455,14 @@ function animItems(o, t, now, warp) {
     else if (ANIM.prevKey) {
       const e = f * f * (3 - 2 * f);
       curIn = Math.min(1, e * XF_K);
-      items.push({ dl: ANIM.prev, alpha: Math.min(1, (1 - e) * XF_K), prog });
-    } else items.push({ dl: ANIM.prev, alpha: 1 - f, prog: 1 });
+      const pa = Math.min(1, (1 - e) * XF_K);
+      items.push(mk(ANIM.prev, pa, pa, prog));
+    } else items.push(mk(ANIM.prev, 1 - f, 1 - f, 1));
   }
-  const pulse = o.pulse ? 0.5 + 0.5 * Math.sin(t * PULSE_RATE) : 0;
+  const pulse = o.pulse || o2.pulse ? 0.5 + 0.5 * Math.sin(t * PULSE_RATE) : 0;
   const curA = curIn * (o.pulse ? 0.7 + 0.3 * pulse : 1);   // dims to 70% at the trough
-  if (!warp) { items.push({ dl: ANIM.cur, alpha: curA, prog }); return { items, np, pulse }; }
+  const curA2 = curIn * (o2.pulse ? 0.7 + 0.3 * pulse : 1);
+  if (!warp) { items.push(mk(ANIM.cur, curA, curA2, prog)); return { items, np, pulse }; }
   // Older recordings dissolve away underneath, each bent from where it was recorded
   const nowN = animNodes(t);
   if (items.length) items[0].warp = warpOffset(ANIM.prevBase || S.nodes, nowN);
@@ -462,9 +470,9 @@ function animItems(o, t, now, warp) {
   ANIM.trail = ANIM.trail.filter(tr => now - tr.at < life);
   ANIM.trail.forEach(tr => {
     const f = 1 - (now - tr.at) / life;
-    items.push({ dl: tr.dl, alpha: curA * TRAIL_ALPHA * f * f, prog, warp: warpOffset(tr.base, nowN) });
+    items.push(mk(tr.dl, curA * TRAIL_ALPHA * f * f, curA2 * TRAIL_ALPHA * f * f, prog, { warp: warpOffset(tr.base, nowN) }));
   });
-  items.push({ dl: ANIM.cur, alpha: curA, prog, warp: warpOffset(ANIM.curBase, nowN) });
+  items.push(mk(ANIM.cur, curA, curA2, prog, { warp: warpOffset(ANIM.curBase, nowN) }));
   return { items, np, pulse };
 }
 
@@ -487,7 +495,7 @@ function animWind(o, t, items) {
 // clocks; w: whether Wind blows on it; brA: its Breathing fade.
 function layerFrame(base, o, li, t, clk, w, brA) {
   const twOn = o.twinkle && modeOn(TWINKLE_MODES, li);
-  return { ...base, o,
+  return { ...base, o, lw: o.pulse ? 1 + PULSE_WIDTH * base.pulse : 1, np: o.draw ? base.np : null,
     rt: o.rings && modeOn(['arcane'], li) ? t : 0,
     ct: o.current && modeOn(CURRENT_MODES, li) ? t : null,
     tt: twOn ? clk.tw : null, st: twOn ? t : null,
@@ -503,7 +511,7 @@ function layerFrame(base, o, li, t, clk, w, brA) {
 // when off; ANIM.frame.l2 is Layer 2's own copy of the effect fields),
 // ANIM.hueFilter and ANIM.hpos. Returns Breathing's clock.
 function animFrame(o, t, { items, np, pulse }, wind) {
-  const base = { items, lw: o.pulse ? 1 + PULSE_WIDTH * pulse : 1, spin: o.spin ? ANIM.spTime * SPIN_RATE : 0, np };
+  const base = { items, pulse, spin: o.spin ? ANIM.spTime * SPIN_RATE : 0, np };
   const c1 = { tw: ANIM.twTime, lf: ANIM.lfTime, sun: ANIM.sunTime, rp: ANIM.rpTime, br: ANIM.brTime };
   const F = layerFrame(base, o, 0, t, c1, wind.m, ANIM.brAmp);
   F.l2 = layerFrame(base, animO2(), 1, t, ANIM.clk2, wind.l, ANIM.brAmp2);
@@ -544,15 +552,15 @@ function countFps(now) {
 }
 // What slows this design down, roughly most costly first (at most 4)
 function fpsTips() {
-  const o = ANIM.opts, out = [], n = symCopies().length;
+  const o = ANIM.opts, o2 = animO2(), out = [], n = symCopies().length;
   const modes = [S.mode, S.layer.mode].filter(m => m && m !== 'none');
   const jumpy = modes.some(m => DRIFT_JUMPY.includes(m) && !DRIFT_BEND.includes(m));
   if (o.glitch) out.push('<b>Glitch</b> redraws the whole design every frame: turn it off, or use Drift.');
   if (n >= 6) out.push(`<b>Symmetry</b> draws the design ${n} times${S.sym.mirror ? ' (Mirror doubles it)' : ''}: fewer copies is the biggest saving.`);
   if (o.drift && !o.flow && !o.glitch && jumpy && !ANIM.drawHeavy && !ANIM.heavy)
     out.push(`<b>Drift</b> re-routes ${modes.filter(m => DRIFT_JUMPY.includes(m) && !DRIFT_BEND.includes(m)).map(MODE_NAME).join(' and ')} live: <b>Flow</b> crossfades between still layouts instead.`);
-  if (o.pulse) out.push('<b>Pulse</b> changes the line width every frame, so nothing can be reused: turn it off.');
-  if (o.draw) out.push('<b>Draw on</b> draws the design afresh every frame: always while it loops per node, until complete with Flow or Morph.');
+  if (o.pulse || o2.pulse) out.push('<b>Pulse</b> changes the line width every frame, so nothing can be reused: turn it off.');
+  if (o.draw || o2.draw) out.push('<b>Draw on</b> draws the design afresh every frame: always while it loops per node, until complete with Flow or Morph.');
   if (S.layer.mode && S.layer.mode !== 'none') out.push(`<b>Layer 2</b> (${MODE_NAME(S.layer.mode)}) adds a second design: turn it off or lower its density.`);
   if (S.density >= 7) out.push(`<b>Density</b> ${S.density}: one or two steps lower thins the pattern out.`);
   if (modes.includes('microscope') && S.micro && S.micro.specimen === 'organisms' && S.micro.orgs > 100) out.push('<b>Microorganisms</b> (Microscope) above 100%: fewer is lighter.');
@@ -614,7 +622,7 @@ function dropFrozen() {
 }
 // A run from the start (Play after Stop, or a loop video)
 function animFresh() {
-  ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (ANIM.opts.draw ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
+  ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (animAnyDraw() ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
   ANIM.curKey = ''; ANIM.prev = null;
   ANIM.drawHeavy = false; ANIM.warpSlow = 0;    // measured again for this run
   ANIM.brAmp = 0; ANIM.brAmp2 = 0;              // Breathing fades in from the still
@@ -791,7 +799,7 @@ function randomizeAnim() {
   if (on.has('flow')) on.delete('glitch');                         // Flow and Glitch exclude each other
   ANIM_BOOLS.forEach(k => { ANIM.opts[k] = on.has(k); });
   Object.keys(ANIM.opts2).forEach(k => delete ANIM.opts2[k]);     // both layers follow again
-  ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (ANIM.opts.draw ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
+  ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (animAnyDraw() ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
   syncAnimControls();
   saveUi({ anim: animSave() });
 }
@@ -930,9 +938,9 @@ function animSave() { return { ...ANIM.opts, layer2: { ...ANIM.opts2 } }; }
 
 // ── Animate scope: the per-layer controls edit Both layers, Layer 1 or Layer 2.
 // Layer 2's values sit in ANIM.opts2 only where they differ from ANIM.opts.
-// (Draw on, Drift, Glitch, Flow, Morph, Pulse, Spin, Colour cycle, Rolling dew,
-// Bloom and Seasons are not per layer yet and always edit both.)
-const ANIM_L_KEYS = ['blink', 'wind', 'rings', 'current', 'twinkle', 'strikes', 'life', 'sun', 'ripples', 'breathe', 'petals', 'rpDrip',
+// (Drift, Glitch, Flow, Morph, Spin, Colour cycle, Rolling dew, Bloom and
+// Seasons are not per layer yet and always edit both.)
+const ANIM_L_KEYS = ['draw', 'pulse', 'blink', 'wind', 'rings', 'current', 'twinkle', 'strikes', 'life', 'sun', 'ripples', 'breathe', 'petals', 'rpDrip',
   'curSpd', 'curRate', 'twRate', 'shoot', 'skRate', 'skSpd', 'lfSpd', 'sunSpd', 'rpSpd', 'brSpd', 'ptRate'];
 function animSet(k, v) {
   const o = ANIM.opts, o2 = ANIM.opts2, sc = ANIM.scope;
@@ -961,7 +969,7 @@ function applyPresetFile(d) {
   if (d && d.anim) {
     setAnimOpts(d.anim);
     syncAnimControls();
-    ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (ANIM.opts.draw ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
+    ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (animAnyDraw() ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH);
     saveUi({ anim: animSave() });
   }
 }
@@ -1003,7 +1011,7 @@ function setupAnim() {
     const other = { flow: 'glitch', glitch: 'flow' }[k];
     if (other && e.target.checked) { ANIM.opts[other] = false; $('an-' + other).checked = false; }
     syncAnimRelevance();
-    if (k === 'morph' || k === 'draw') { ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (ANIM.opts.draw ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH); }
+    if (k === 'morph' || k === 'draw') { ANIM.cycleAt = ANIM.time; ANIM.nextMorph = ANIM.time + (animAnyDraw() ? ANIM_DRAW + ANIM_HOLD : ANIM_MORPH); }
     saveUi({ anim: animSave() });
   }));
   $('an-scope').addEventListener('change', e => { ANIM.scope = e.target.value; syncAnimControls(); });
