@@ -61,7 +61,7 @@ const LF_LIFE = [5, 8], LF_FALL = [14, 24], LF_TAU = 1, LF_SWAY = [10, 24];
 function drawPetals(x, ops, a, prog, wp, isL2, copies, F, plain = false) {
   if (F && F.ys != null && !plain && x.setTransform && ops.leafFall && a > 0.003) drawLeafFall(x, ops, a, wp, copies, F);
   if (!F || F.pt == null || plain || !x.setTransform || !ops.petals || a <= 0.003 || !PETAL_MODES.includes(isL2 ? S.layer.mode : S.mode)) return;
-  const rate = ANIM.opts.ptRate ?? 1;
+  const rate = (F.o || ANIM.opts).ptRate ?? 1;
   const A = prog < 1 ? (F.np ? animTimesNode(ops) : animTimes(ops)) : null;
   const T = x.getTransform(), s = Math.sqrt(Math.abs(T.a * T.d - T.b * T.c)) || 1;
   const al = Math.min(1, a), salt = isL2 ? 0.53 : 0;
@@ -252,10 +252,10 @@ function curAt(L, d) {
   return [P[lo][0] + (P[hi][0] - P[lo][0]) * f, P[lo][1] + (P[hi][1] - P[lo][1]) * f];
 }
 // This frame's pulses of a list: [{ tail: [[x, y]…], head, w, flash, at }]
-function currentFrame(ops, t, wp, np, mode) {
+function currentFrame(ops, t, wp, np, mode, fo = ANIM.opts) {
   const out = [];
   const W = wp ? (p => { const o = wp(p[0], p[1]); return [p[0] + o[0], p[1] + o[1]]; }) : (p => p);
-  const spd = ANIM.opts.curSpd || 1, rate = ANIM.opts.curRate || 1;
+  const spd = fo.curSpd || 1, rate = fo.curRate || 1;
   currentPaths(ops, mode).forEach(L => {
     if (np && ((np[L.ns] ?? 1) < 1 || (np[L.ne] ?? 1) < 1)) return;
     const V = CUR_V * L.vk * spd, per = L.len / V + L.rest / rate;
@@ -531,7 +531,7 @@ function drawTwinkle(x, q, a) {
 }
 // Shooting star of a list at time t, or null: { x0, y0, dx, dy, L, u, w, col }
 // (u: 0–1 through its flight). The area is the stars' bounding box (cached).
-function shootFrame(ops, t) {
+function shootFrame(ops, t, fo = ANIM.opts) {
   let B = ops._twB;
   if (B === undefined) {
     B = null;
@@ -545,7 +545,7 @@ function shootFrame(ops, t) {
     }
     ops._twB = B;
   }
-  const rate = ANIM.opts.shoot ?? 1;
+  const rate = fo.shoot ?? 1;
   if (!B || rate <= 0) return null;
   const slot = SHOOT_SLOT / rate, k0 = Math.floor(t / slot);
   for (const k of [k0, k0 - 1, k0 - 2, k0 - 3]) {
@@ -638,12 +638,12 @@ function strikeSet(T, tg) {
   return out;
 }
 // This frame's lit pieces: [{ pts, w, al, bolt, flash }] (pts warped)
-function strikeFrame(ops, t, wp, np) {
+function strikeFrame(ops, t, wp, np, fo = ANIM.opts) {
   const T = strikeTree(ops), n = T.bolts.length || T.nodesWith.length, out = [];
   if (!n) return out;
   const W = wp ? (p => { const o = wp(p.x, p.y); return { x: p.x + o[0], y: p.y + o[1] }; }) : (p => p);
   const raw = k => Math.floor(twHash(k * 3.31 + 0.13) * n) % n;
-  const slot = STRIKE_SLOT / (ANIM.opts.skRate || 1), spd = ANIM.opts.skSpd || 1, k0 = Math.floor(t / slot);
+  const slot = STRIKE_SLOT / (fo.skRate || 1), spd = fo.skSpd || 1, k0 = Math.floor(t / slot);
   for (let k = k0 - Math.ceil(STRIKE_LIFE / (spd * 0.7) / slot); k <= k0; k++) {
     const h = j => twHash(k * 7.77 + j * 1.37 + 0.5);
     if (h(1) < STRIKE_SKIP) continue;

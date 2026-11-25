@@ -548,18 +548,19 @@ function symState(c, F, o) {
   return { c, F, copies, raw: o.raw || c, map: o.map || null, gaze: o.gaze || null, plain: !!o.plain,
     rotOnly: copies.length > 1 && !S.sym.mirror, GD: Math.min(Math.PI * 2 / copies.length / 8, 0.12) };
 }
-// The lists to draw, in order: [ops, alpha, prog, warp, isL2, base]
-// (prog: draw-on progress, 1 when static; base: the layer's own strength)
+// The lists to draw, in order: [ops, alpha, prog, warp, isL2, base, F]
+// (prog: draw-on progress, 1 when static; base: the layer's own strength;
+// F: the animation frame of the list's layer, ANIM.frame or ANIM.frame.l2)
 function symLists(dl, F) {
   const alpha = S.layer.strength / 100, lists = [];
   // Strikes: the resting discharge is dimmed, the strikes draw over it
-  const strikeRest = m => F && F.sk != null && STRIKE_MODES.includes(m) ? STRIKE_REST : 1;
+  const strikeRest = (m, f) => f && f.sk != null && STRIKE_MODES.includes(m) ? STRIKE_REST : 1;
   // Breathing: a warp per Foam list, from its own bubbles
-  const breath = (ops, m) => F && F.br != null && BREATHE_MODES.includes(m) ? breathWarp(ops, F.br, F.brA) : null;
+  const breath = (ops, m, f) => f && f.br != null && BREATHE_MODES.includes(m) ? breathWarp(ops, f.br, f.brA) : null;
   if (F) F.items.forEach(it => {
     if (it.alpha <= 0.003) return;
-    if (it.dl.layer) lists.push([it.dl.layer, alpha * it.alpha * strikeRest(S.layer.mode), it.prog, addWarps(addWarps(it.warp, it.windL), breath(it.dl.layer, S.layer.mode)), true, alpha]);
-    lists.push([it.dl.main, it.alpha * strikeRest(S.mode), it.prog, addWarps(addWarps(it.warp, it.windM), breath(it.dl.main, S.mode)), false, 1]);
+    if (it.dl.layer) lists.push([it.dl.layer, alpha * it.alpha * strikeRest(S.layer.mode, F.l2 || F), it.prog, addWarps(addWarps(it.warp, it.windL), breath(it.dl.layer, S.layer.mode, F.l2 || F)), true, alpha, F.l2 || F]);
+    lists.push([it.dl.main, it.alpha * strikeRest(S.mode, F), it.prog, addWarps(addWarps(it.warp, it.windM), breath(it.dl.main, S.mode, F)), false, 1, F]);
   });
   else { if (dl.layer) lists.push([dl.layer, alpha, 1, null, true, alpha]); lists.push([dl.main, 1, 1, null, false, 1]); }
   return lists;
@@ -578,7 +579,8 @@ function eachCopy(x, copies, fn, wid = 0, wantTw = false) {
 }
 // The colour map for one list: Layer 2 has its own (palette l2)
 function listMap(D, isL2) { return isL2 && D.map && D.map.l2 ? D.map.l2 : D.map; }
-function symDrawList(D, [ops, a, prog, wp, isL2, base], li) {
+function symDrawList(D, [ops, a, prog, wp, isL2, base, Fl], li) {
+  if (Fl && D.F !== Fl) D = { ...D, F: Fl };         // the helpers read the list's own layer's frame
   const mode = isL2 ? S.layer.mode : S.mode, F = D.F;
   const map = listMap(D, isL2), x = map === D.map ? D.c : paletteCtx(D.raw, map);
   const raw = x.canvas;
@@ -590,7 +592,7 @@ function symDrawList(D, [ops, a, prog, wp, isL2, base], li) {
   // Draw the layer and its eyes into a buffer at the layer's strength,
   // where the lids first erase what they cover, then lay the buffer on
   // the canvas (with the item's fade).
-  if (F && raw && ANIM.opts.blink && ops.eyes && base < 0.995 && (prog >= 1 || F.np) && a > 0.003) {
+  if (F && raw && F.o.blink && ops.eyes && base < 0.995 && (prog >= 1 || F.np) && a > 0.003) {
     const off = fadeBuffer('lids' + li, raw.width, raw.height), pc = paletteCtx(clearBuffer(off, x.getTransform()), map);
     symDrawAll(D, pc, ops, base, prog, wp);
     symDrawLids(D, pc, ops, base, prog, wp, true);
@@ -666,7 +668,7 @@ function symDrawAll(D, x, ops, a, prog, wp) {
 // what they cover, see drawLid
 function symDrawLids(D, x, ops, a, prog, wp, erase = false) {
   const F = D.F;
-  if (!F || !ANIM.opts.blink || !ops.eyes || (prog < 1 && !F.np) || a <= 0.003) return;
+  if (!F || !F.o.blink || !ops.eyes || (prog < 1 && !F.np) || a <= 0.003) return;
   // Draw on per node: only eyes whose node is fully drawn (eye id = node index)
   const open = e => !(prog < 1 && F.np) || (F.np[e.id] ?? 1) >= 1;
   const t = ANIM.blinkTime, shut = ops.eyes.map(e => blinkAmt(t, e.id));
@@ -706,7 +708,7 @@ function lidAxis(cp, L, Tw, Tc) {
 function symDrawCurrent(D, x, ops, a, prog, wp, mode) {
   const F = D.F;
   if (!F || F.ct == null || !CURRENT_MODES.includes(mode) || a <= 0.003 || (prog < 1 && !F.np)) return;
-  const P = currentFrame(ops, F.ct, wp, prog < 1 ? F.np : null, mode);
+  const P = currentFrame(ops, F.ct, wp, prog < 1 ? F.np : null, mode, F.o);
   if (!P.length) return;
   const col = CUR_COL[mode];
   eachCopy(x, D.copies, () => P.forEach(q => drawPulse(x, q, col, Math.min(1, a), F.lw)));
@@ -716,7 +718,7 @@ function symDrawTwinkles(D, x, ops, a, prog, wp, mode) {
   const F = D.F;
   if (!F || F.tt == null || !TWINKLE_MODES.includes(mode) || !ops.stars || a <= 0.003 || (prog < 1 && !F.np)) return;
   const P = twinkleFrame(ops, F.tt, wp, prog, prog < 1 ? F.np : null);
-  const M = prog >= 1 && F.st != null ? shootFrame(ops, F.st) : null;
+  const M = prog >= 1 && F.st != null ? shootFrame(ops, F.st, F.o) : null;
   if (!P.length && !M) return;
   const al = Math.min(1, a);
   eachCopy(x, D.copies, () => {
@@ -728,7 +730,7 @@ function symDrawTwinkles(D, x, ops, a, prog, wp, mode) {
 function symDrawStrikes(D, x, ops, a, prog, wp, mode) {
   const F = D.F;
   if (!F || F.sk == null || !STRIKE_MODES.includes(mode) || !ops.light || a <= 0.001) return;
-  const S2 = strikeFrame(ops, F.sk, wp, prog < 1 ? (F.np || 'none') : null);
+  const S2 = strikeFrame(ops, F.sk, wp, prog < 1 ? (F.np || 'none') : null, F.o);
   if (!S2.length) return;
   const al = Math.min(1, a / STRIKE_REST);
   eachCopy(x, D.copies, () => drawStrike(x, S2, al, F.lw));

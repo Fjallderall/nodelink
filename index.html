@@ -417,6 +417,11 @@
 
   <div class="anim-panel hidden" id="anim-panel" aria-label="Animation">
     <div class="sheet-head"><span>Animation</span><button class="sheet-min" id="an-min" aria-expanded="true" title="Fold the animation settings away">▾</button></div>
+    <div class="anim-speed" id="an-scope-row" title="Which layer the effect controls below edit. Draw on, Drift, Glitch, Flow, Morph, Pulse, Spin, Colour cycle, Rolling dew, Bloom and Seasons always act on both layers for now.">
+      <label for="an-scope">Animate</label>
+      <select id="an-scope"><option value="both">Both layers</option><option value="l1">Layer 1</option><option value="l2">Layer 2</option></select>
+    </div>
+    <p class="an-note hidden" id="an-scope-note">The effect controls edit this layer only. Draw on, Drift, Glitch, Flow, Morph, Pulse, Spin, Colour cycle, Rolling dew, Bloom and Seasons still act on both layers.</p>
     <p class="an-rec" id="an-rec"></p>
     <p class="an-fps" id="an-fps" aria-live="off"><b id="an-fps-v">–</b> fps</p>
     <p class="an-note hidden" id="an-drift-note" role="status"></p>

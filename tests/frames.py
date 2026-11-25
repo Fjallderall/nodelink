@@ -56,6 +56,11 @@ SCEN_EXTRA = {
     'hyphae-life-blink': "S.mode='microscope'; S.micro={specimen:'hyphae',veins:true,orgs:100,cilia:'auto',detail:true}; Object.assign(ANIM.opts,{life:true,blink:true}); ANIM.gaze={x:-50,y:30};",
     'hyphae-sym-draw': "S.mode='microscope'; S.micro={specimen:'hyphae',veins:true,orgs:100,cilia:'auto',detail:true}; S.sym={n:6,mirror:true}; S.boundary={shape:'hexagon',size:300,border:'single'}; Object.assign(ANIM.opts,{draw:true,life:true,blink:true,drift:true,lfSpd:3});",
     'micro-plain': "S.mode='microscope'; S.micro={veins:false,orgs:180,cilia:'off',detail:false}; Object.assign(ANIM.opts,{life:true,spin:true,hue:true});",
+    # Phase 51: per-layer effects (ANIM.opts2 holds Layer 2's own values). Each pair differs only in who has the effect
+    'scope-l1': "S.mode='pcb'; S.layer={mode:'nebula',density:4,weight:0.8,strength:70}; Object.assign(ANIM.opts,{drift:false,draw:false,current:true,twinkle:false}); Object.assign(ANIM.opts2,{current:false,twinkle:true});",
+    'scope-both': "S.mode='pcb'; S.layer={mode:'nebula',density:4,weight:0.8,strength:70}; Object.assign(ANIM.opts,{drift:false,draw:false,current:true,twinkle:true});",
+    'scope-none': "S.mode='pcb'; S.layer={mode:'nebula',density:4,weight:0.8,strength:70}; Object.assign(ANIM.opts,{drift:false,draw:false,current:false,twinkle:false});",
+    'scope-l2-speed': "S.mode='constellation'; S.layer={mode:'constellation',density:5,weight:0.8,strength:70}; S.seed=777; Object.assign(ANIM.opts,{drift:false,draw:false,twinkle:true,twRate:1}); Object.assign(ANIM.opts2,{twRate:3});",
 }
 if len(sys.argv) > 3 and sys.argv[3] == 'extra': SCEN = SCEN_EXTRA
 
