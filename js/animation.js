@@ -988,6 +988,19 @@ function animSet(k, v, sc = 'both') {
   else { if (!(k in o2)) o2[k] = o[k]; o[k] = v; }     // Layer 2 keeps what it had
   if (o2[k] === o[k]) delete o2[k];
 }
+// Swap Layer 1's and Layer 2's own animation options (and their effect clocks), so every effect stays
+// with its design when the layers are swapped. The global options stay as they are.
+function swapLayerAnim() {
+  const o = ANIM.opts, b = animO2(), o2 = {};
+  ANIM_L_KEYS.forEach(k => { const a = o[k]; o[k] = b[k]; if (a !== b[k]) o2[k] = a; });
+  ANIM.opts2 = o2;
+  const c = ANIM.clk2, t = { tw: ANIM.twTime, lf: ANIM.lfTime, sun: ANIM.sunTime, rp: ANIM.rpTime, br: ANIM.brTime };
+  ANIM.twTime = c.tw; ANIM.lfTime = c.lf; ANIM.sunTime = c.sun; ANIM.rpTime = c.rp; ANIM.brTime = c.br;
+  Object.assign(c, t);
+  [ANIM.brAmp, ANIM.brAmp2] = [ANIM.brAmp2, ANIM.brAmp];
+  syncAnimControls();
+  saveUi({ anim: animSave() });
+}
 // Which layer a section's controls edit: li 1 / 2
 const hasLayer2 = () => !!S.layer.mode && S.layer.mode !== 'none';
 const layerScope = li => !hasLayer2() ? 'both' : li === 2 ? 'l2' : 'l1';

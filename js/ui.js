@@ -683,7 +683,7 @@ function updateExportReadout() {
 // ── SHELL: tabs, toolbar, export drawer, shortcuts ─────────────────────────
 // Layout state of the page itself (tab, drawer, folded menu), saved in LS_UI.
 const LS_UI = 'nodelink.ui';
-const APP_VERSION = 'Phase 52g (26-11-2026)';   // shown in About; update with every published phase
+const APP_VERSION = 'Phase 52h (26-11-2026)';   // shown in About; update with every published phase
 // About or the loop video's progress is open: no shortcuts
 function modalOpen() { return document.getElementById('about').open || document.getElementById('loop-dlg').open; }
 function setTab(name) {
@@ -906,6 +906,7 @@ function bindComposition() {
   // The layer being edited follows its design to the other slot
   $('layer-swap').addEventListener('click', () => {
     if (!swapLayers()) return;
+    swapLayerAnim();
     EDIT_L = EDIT_L === 1 ? 2 : 1;
     syncControls(); syncComposition(); update(); commit();
   });
