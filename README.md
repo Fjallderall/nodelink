@@ -10,8 +10,8 @@ A node-based pattern generator that runs in the browser. Place up to nine nodes,
 - **Exports**:
   - PNG with transparency, at a chosen size and DPI (for Procreate and print)
   - strokes SVG (editable vector)
-  - cut SVG for Cricut / Silhouette vinyl, iron-on, paint stencils and laser cutting, with minimum line width, gap and piece size per material
-  - loop video (MP4, 5–60 s, Full HD, 4K or the screen's size) that plays on repeat without a visible seam, for a TV, projector or VJ software
+  - cut SVG for Cricut vinyl, iron-on, paint stencils and laser cutting, with minimum line width, gap and piece size per material
+  - loop video (MP4, 5–60 s, Full HD, 4K or the screen's size) that plays on repeat without a visible seam, for a TV or projector
 - **Library**: save and load designs as `.json`, favourites, undo / redo.
 
 Everything runs in the browser; nothing is uploaded.

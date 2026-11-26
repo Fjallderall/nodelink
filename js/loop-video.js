@@ -1,6 +1,6 @@
 // ── LOOP VIDEO ─────────────────────────────────────────────────────────────
-// Export → Video: records the animation as an MP4 that another device (a TV,
-// projector or VJ software) plays on repeat with no visible seam.
+// Export → Video: records the animation as an MP4 that another device (a TV
+// or projector) plays on repeat with no visible seam.
 // A screen recording would jump at the seam: the effects run on their own
 // clocks (twinkle, strikes, drift, seasons, petals), so the last frame never
 // matches the first. Instead:
@@ -15,7 +15,7 @@
 //     (0 → 100%). So the video (N frames, starting at frame Fn) ends on frame
 //     Fn−1, which is followed by frame Fn: its own first frame.
 //  3. WebCodecs VideoEncoder with exact timestamps (MediaRecorder follows the
-//     wall clock), H.264 in MP4 for TVs and VJ software; VP9 in MP4 where the
+//     wall clock), H.264 in MP4 for TVs and projectors; VP9 in MP4 where the
 //     browser has no H.264 encoder (VLC and browsers play it, TVs may not).
 //     The MP4 file is written by mp4File below (no libraries).
 // Size: 16:9 (Full HD, 4K, this screen), or the Page layout's shape at the same pixel budget (loopSize).

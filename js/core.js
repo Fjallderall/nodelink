@@ -176,7 +176,7 @@ const E = { frame: 'bounds', cm: 10, dpi: 300, transparent: true, minMm: 0.8, mi
 // a paint stencil the ink is cut away, so islands inside it fall out; for a
 // laser filigree the ink is the part you keep, so separate pieces fall out.
 const CUT_PRESETS = {
-  vinyl:     { label: 'Vinyl (Cricut, Silhouette)', minMm: 0.8, minGapMm: 0.5, minPiece: 1, cutStyle: 'fill', kind: 'vinyl' },
+  vinyl:     { label: 'Vinyl (Cricut)', minMm: 0.8, minGapMm: 0.5, minPiece: 1, cutStyle: 'fill', kind: 'vinyl' },
   htv:       { label: 'Iron-on vinyl (HTV)', minMm: 1.0, minGapMm: 0.8, minPiece: 2, cutStyle: 'fill', kind: 'vinyl' },
   stencil:   { label: 'Paint stencil (mylar)', minMm: 1.0, minGapMm: 0.8, minPiece: 2, cutStyle: 'fill', kind: 'stencil' },
   lpaper:    { label: 'Laser: paper / card', minMm: 0.5, minGapMm: 0.3, minPiece: 0.5, cutStyle: 'hairline', kind: 'laser' },
